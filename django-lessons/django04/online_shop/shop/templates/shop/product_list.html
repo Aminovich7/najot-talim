@@ -1,0 +1,142 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Mahsulotlar — NajotShop{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div class="container-lg">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div>
+                <h1><i class="bi bi-shop me-2"></i>Mahsulotlar</h1>
+                <p class="mb-0 mt-1 text-white-50">Barcha mahsulotlarni boshqaring</p>
+            </div>
+            <span class="badge-count ms-auto">{{ total_count }} ta</span>
+        </div>
+    </div>
+</div>
+
+<div class="container-lg pb-5">
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+        <div class="row g-3 align-items-center">
+            <!-- Search -->
+            <div class="col-lg-5">
+                <form method="get" class="d-flex gap-2">
+                    <input type="text" name="q" class="form-control"
+                           placeholder="Mahsulot qidirish..." value="{{ query }}">
+                    {% if request.GET.category %}
+                    <input type="hidden" name="category" value="{{ request.GET.category }}">
+                    {% endif %}
+                    <button class="btn btn-primary px-3" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Category pills -->
+            <div class="col-lg-7">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'shop:product_list' %}{% if query %}?q={{ query }}{% endif %}"
+                       class="category-pill {% if not selected_category %}active{% endif %}">
+                        Barchasi
+                    </a>
+                    {% for cat in categories %}
+                    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}"
+                       class="category-pill {% if selected_category == cat.id|stringformat:'s' %}active{% endif %}">
+                        {{ cat.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIVE FILTER INFO -->
+    {% if query %}
+    <div class="mb-3 d-flex align-items-center gap-2">
+        <span class="text-muted small">"<strong>{{ query }}</strong>" uchun {{ total_count }} ta natija</span>
+        <a href="{% url 'shop:product_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill">
+            <i class="bi bi-x"></i> Tozalash
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- PRODUCT GRID -->
+    {% if products %}
+    <div class="row g-4">
+        {% for product in products %}
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="product-card">
+                <!-- Image -->
+                <div class="card-img-wrapper">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <div class="no-img"><i class="bi bi-image"></i></div>
+                    {% endif %}
+
+                    {% if not product.is_available %}
+                    <span class="card-badge" style="background:#666;">Tugagan</span>
+                    {% elif product.stock <= 5 %}
+                    <span class="card-badge">Kam qoldi</span>
+                    {% endif %}
+                </div>
+
+                <!-- Body -->
+                <div class="card-body">
+                    {% if product.category %}
+                    <p class="category-tag">{{ product.category.name }}</p>
+                    {% endif %}
+                    <h5>{{ product.name }}</h5>
+                    <p class="text-muted" style="font-size:0.8rem; -webkit-line-clamp:2; display:-webkit-box; -webkit-box-orient:vertical; overflow:hidden;">
+                        {{ product.description|default:"Tavsif yo'q" }}
+                    </p>
+                    <div class="price">{{ product.formatted_price }} so'm</div>
+                    <div class="stock-info">
+                        <i class="bi bi-box-seam me-1"></i>Ombor: {{ product.stock }} dona
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card-actions">
+                    <a href="{% url 'shop:product_detail' product.pk %}"
+                       class="btn btn-primary btn-sm flex-grow-1">
+                        <i class="bi bi-eye me-1"></i>Ko'rish
+                    </a>
+                    <a href="{% url 'shop:product_update' product.pk %}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'shop:product_delete' product.pk %}"
+                       class="btn btn-sm" style="border:1.5px solid #fde8e5; color:#de350b;">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- EMPTY STATE -->
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+        <h3 style="font-family:'Syne',sans-serif; font-weight:700;">Mahsulot topilmadi</h3>
+        <p class="text-muted mb-4">
+            {% if query %}
+                "{{ query }}" so'rovi bo'yicha hech narsa topilmadi.
+            {% else %}
+                Hozircha mahsulotlar yo'q.
+            {% endif %}
+        </p>
+        <a href="{% url 'shop:product_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Birinchi mahsulotni qo'shish
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

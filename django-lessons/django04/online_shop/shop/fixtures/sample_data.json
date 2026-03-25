@@ -1,0 +1,69 @@
+[
+  {
+    "model": "shop.category",
+    "pk": 1,
+    "fields": { "name": "Elektronika", "slug": "elektronika" }
+  },
+  {
+    "model": "shop.category",
+    "pk": 2,
+    "fields": { "name": "Kiyim-kechak", "slug": "kiyim-kechak" }
+  },
+  {
+    "model": "shop.category",
+    "pk": 3,
+    "fields": { "name": "Oziq-ovqat", "slug": "oziq-ovqat" }
+  },
+  {
+    "model": "shop.product",
+    "pk": 1,
+    "fields": {
+      "category": 1,
+      "name": "Samsung Galaxy A54",
+      "description": "6.4 dyuymli ekran, 128GB xotira, 5000 mAh batareya.",
+      "price": "3990000.00",
+      "stock": 15,
+      "image": "",
+      "is_available": true
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 2,
+    "fields": {
+      "category": 1,
+      "name": "Apple AirPods Pro",
+      "description": "Shovqinni bekor qiluvchi quloqchin, Bluetooth 5.3.",
+      "price": "2850000.00",
+      "stock": 8,
+      "image": "",
+      "is_available": true
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 3,
+    "fields": {
+      "category": 2,
+      "name": "Erkaklar ko'ylagi",
+      "description": "100% paxta, turli o'lchamlar mavjud.",
+      "price": "185000.00",
+      "stock": 50,
+      "image": "",
+      "is_available": true
+    }
+  },
+  {
+    "model": "shop.product",
+    "pk": 4,
+    "fields": {
+      "category": 3,
+      "name": "Grechka yarmasи 1kg",
+      "description": "Toza va foydali, to'g'ridan-to'g'ri ishlab chiqaruvchidan.",
+      "price": "28000.00",
+      "stock": 200,
+      "image": "",
+      "is_available": true
+    }
+  }
+]

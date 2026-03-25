@@ -1,0 +1,154 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}{{ title }} — NajotShop{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="container-lg">
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb" style="--bs-breadcrumb-divider-color:rgba(255,255,255,0.3);">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'shop:product_list' %}" style="color:rgba(255,255,255,0.6);">Mahsulotlar</a>
+                </li>
+                {% if action == 'update' and product %}
+                <li class="breadcrumb-item">
+                    <a href="{% url 'shop:product_detail' product.pk %}" style="color:rgba(255,255,255,0.6);">{{ product.name }}</a>
+                </li>
+                {% endif %}
+                <li class="breadcrumb-item active text-white">{{ title }}</li>
+            </ol>
+        </nav>
+        <h1>
+            {% if action == 'create' %}
+            <i class="bi bi-plus-circle me-2"></i>Yangi mahsulot
+            {% else %}
+            <i class="bi bi-pencil-square me-2"></i>Tahrirlash
+            {% endif %}
+        </h1>
+    </div>
+</div>
+
+<div class="container-lg pb-5">
+    <div class="form-card">
+
+        <!-- Image preview (update only) -->
+        {% if action == 'update' and product and product.image %}
+        <div class="text-center mb-4">
+            <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                 style="max-height:200px; border-radius:12px; object-fit:cover; border:2px solid var(--border);">
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+                <!-- Name -->
+                <div class="col-12">
+                    <label class="form-label">{{ form.name.label }} <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="text-danger small mt-1">{{ form.name.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Category -->
+                <div class="col-md-6">
+                    <label class="form-label">{{ form.category.label }}</label>
+                    {{ form.category }}
+                </div>
+
+                <!-- Price -->
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.price.label }} <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        {{ form.price }}
+                        <span class="input-group-text" style="border:1.5px solid var(--border); border-left:none; border-radius:0 10px 10px 0; font-size:0.85rem; color:var(--text-muted);">so'm</span>
+                    </div>
+                    {% if form.price.errors %}
+                    <div class="text-danger small mt-1">{{ form.price.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Stock -->
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.stock.label }}</label>
+                    <div class="input-group">
+                        {{ form.stock }}
+                        <span class="input-group-text" style="border:1.5px solid var(--border); border-left:none; border-radius:0 10px 10px 0; font-size:0.85rem; color:var(--text-muted);">dona</span>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="col-12">
+                    <label class="form-label">{{ form.description.label }}</label>
+                    {{ form.description }}
+                </div>
+
+                <!-- Image -->
+                <div class="col-12">
+                    <label class="form-label">{{ form.image.label }}</label>
+                    {{ form.image }}
+                    <div class="form-text text-muted">JPG, PNG, WebP — max 5 MB</div>
+                </div>
+
+                <!-- Available -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center gap-2 p-3"
+                         style="background:var(--surface); border-radius:10px; border:1.5px solid var(--border);">
+                        {{ form.is_available }}
+                        <label class="form-check-label fw-semibold mb-0" for="{{ form.is_available.id_for_label }}">
+                            {{ form.is_available.label }}
+                        </label>
+                        <span class="text-muted small ms-1">(mahsulot do'konda ko'rinadi)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUBMIT BUTTONS -->
+            <div class="d-flex gap-3 mt-4 pt-3" style="border-top:1.5px solid var(--border);">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check-lg me-2"></i>{{ btn_label }}
+                </button>
+
+                {% if action == 'update' and product %}
+                <a href="{% url 'shop:product_detail' product.pk %}" class="btn btn-outline-secondary px-4">
+                    Bekor qilish
+                </a>
+                {% else %}
+                <a href="{% url 'shop:product_list' %}" class="btn btn-outline-secondary px-4">
+                    Bekor qilish
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Live image preview
+    const imgInput = document.querySelector('input[type="file"]');
+    if (imgInput) {
+        imgInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    let preview = document.getElementById('imgPreview');
+                    if (!preview) {
+                        preview = document.createElement('img');
+                        preview.id = 'imgPreview';
+                        preview.style.cssText = 'max-height:160px; border-radius:10px; border:2px solid var(--border); margin-top:8px; display:block;';
+                        this.parentNode.appendChild(preview);
+                    }
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}{{ product.name }} — NajotShop{% endblock %}
+
+{% block content %}
+
+<div class="container-lg py-4">
+
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'shop:product_list' %}">Mahsulotlar</a></li>
+            {% if product.category %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'shop:product_list' %}?category={{ product.category.pk }}">{{ product.category.name }}</a>
+            </li>
+            {% endif %}
+            <li class="breadcrumb-item active">{{ product.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-5">
+        <!-- IMAGE -->
+        <div class="col-md-5">
+            <div class="detail-img-wrapper">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                    <i class="bi bi-image" style="font-size:6rem; color:#ccc;"></i>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- INFO -->
+        <div class="col-md-7">
+            {% if product.category %}
+            <span class="category-tag" style="font-size:0.78rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:1px;">
+                {{ product.category.name }}
+            </span>
+            {% endif %}
+
+            <h1 style="font-family:'Syne',sans-serif; font-weight:800; font-size:2rem; margin: 0.6rem 0 1rem; letter-spacing:-0.5px;">
+                {{ product.name }}
+            </h1>
+
+            <div class="detail-price mb-3">{{ product.formatted_price }} so'm</div>
+
+            {% if product.description %}
+            <p class="text-muted mb-4" style="line-height:1.7;">{{ product.description }}</p>
+            {% endif %}
+
+            <!-- CHIPS -->
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <span class="info-chip">
+                    <i class="bi bi-box-seam text-muted"></i>
+                    Ombor: <strong>{{ product.stock }} dona</strong>
+                </span>
+                <span class="info-chip">
+                    {% if product.is_available %}
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <span class="badge-available">Mavjud</span>
+                    {% else %}
+                    <i class="bi bi-x-circle-fill text-danger"></i>
+                    <span class="badge-unavailable">Mavjud emas</span>
+                    {% endif %}
+                </span>
+                <span class="info-chip">
+                    <i class="bi bi-calendar3 text-muted"></i>
+                    {{ product.created_at|date:"d.m.Y" }}
+                </span>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="d-flex gap-3 flex-wrap">
+                <a href="{% url 'shop:product_update' product.pk %}" class="btn btn-primary px-4">
+                    <i class="bi bi-pencil-square me-2"></i>Tahrirlash
+                </a>
+                <a href="{% url 'shop:product_delete' product.pk %}"
+                   class="btn px-4" style="border:2px solid #fde8e5; color:#de350b; font-weight:600; border-radius:8px;">
+                    <i class="bi bi-trash me-2"></i>O'chirish
+                </a>
+                <a href="{% url 'shop:product_list' %}" class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-arrow-left me-2"></i>Orqaga
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- RELATED PRODUCTS -->
+    {% if related %}
+    <div class="mt-5 pt-4" style="border-top: 1.5px solid var(--border);">
+        <h3 style="font-family:'Syne',sans-serif; font-weight:700; margin-bottom:1.5rem;">
+            O'xshash mahsulotlar
+        </h3>
+        <div class="row g-3">
+            {% for item in related %}
+            <div class="col-6 col-md-3">
+                <div class="product-card">
+                    <div class="card-img-wrapper">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}">
+                        {% else %}
+                            <div class="no-img"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5>{{ item.name }}</h5>
+                        <div class="price">{{ item.formatted_price }} so'm</div>
+                    </div>
+                    <div class="card-actions">
+                        <a href="{% url 'shop:product_detail' item.pk %}" class="btn btn-primary btn-sm flex-grow-1">
+                            Ko'rish
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
