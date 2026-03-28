@@ -1,0 +1,15 @@
+<a href="{% url 'category-list' %}">Service list</a><br><br>
+
+{% if category %}
+
+{{category.name}}<br>
+{{category.desc}}<br>
+
+<a href="{% url 'delete' category.id %}">DELETE</a><br>
+<a href="{% url 'update' category.id %}">UPDATE</a><br>
+
+{% else %}
+
+Category topilmadi!
+
+{% endif %}

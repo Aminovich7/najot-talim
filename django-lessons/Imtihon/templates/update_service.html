@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPDATE SERVICES</title>
+</head>
+
+<body>
+    <a href="{% url 'index' %}">Home</a>
+    <a href="{% url 'service-list' %}">Orqaga qaytish</a>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <input type="text" name="title" placeholder="Title" value="{{ service.title }}"><br>
+        <input type="text" name="description" placeholder="Description" value="{{ service.description }}"><br>
+        <input type="number" name="price" placeholder="Price" value="{{ service.price }}"><br>
+        <input type="text" name="category" placeholder="Category" value="{{ service.category }}"><br>
+        <button type="submit">Saqlash</button>
+
+    </form>
+
+</body>
+
+</html>

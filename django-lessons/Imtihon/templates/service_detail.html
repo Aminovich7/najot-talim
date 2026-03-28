@@ -1,0 +1,17 @@
+<a href="{% url 'service-list' %}">Service list</a><br><br>
+
+{% if service %}
+
+{{service.title}}<br>
+{{service.description}}<br>
+{{service.price}}<br>
+{{service.category}}<br>
+
+<a href="{% url 'delete' service.id %}">DELETE</a><br>
+<a href="{% url 'update' service.id %}">UPDATE</a><br>
+
+{% else %}
+
+Service topilmadi!
+
+{% endif %}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPDATE CATEGORY</title>
+</head>
+
+<body>
+    <a href="{% url 'index' %}">Home</a>
+    <a href="{% url 'category-list' %}">Back</a>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <input type="text" name="name" placeholder="Name" value="{{ category.name }}"><br>
+        <input type="text" name="desc" placeholder="Description" value="{{ category.desc }}"><br>
+        <button type="submit">Saqlash</button>
+
+    </form>
+
+</body>
+
+</html>

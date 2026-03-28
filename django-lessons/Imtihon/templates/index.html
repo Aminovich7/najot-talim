@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOME</title>
+</head>
+
+<body>
+
+    <a href="{% url 'category-create' %}">CATEGORY YARATISH</a><br><br>
+
+    {% for ctg in category %}
+        {{ ctg.name }}
+        {{ ctg.desc }}<br><br>
+    {% endfor %}
+
+    <a href="{% url 'service-create' %}">SERVICE YARATISH</a><br><br>
+
+    {% for srv in service %}
+        <a href="{% url 'service-detail' srv.id %}">{{ srv.title }}</a><br><br>
+    {% endfor %}
+
+</body>
+
+</html>
