@@ -1,0 +1,17 @@
+<form method='post'>
+    {%csrf_token%}
+    <a href="{% url 'list' %}">Telefonlar</a>
+
+    {% if phone %}
+    {{ phone.title }} telni o'chirishga aminmisiz
+
+    <button type='submit'>Ha</button>
+    <a href="{% url 'detail' phone.id %}">Yo'q</a>
+
+
+    {% else %}
+
+    TELEFON topilmadi
+
+    {% endif %}
+</form>

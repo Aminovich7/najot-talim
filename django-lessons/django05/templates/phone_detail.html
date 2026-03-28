@@ -1,0 +1,17 @@
+<a href="{% url 'list' %}">Phone list</a><br><br>
+
+{% if phone %}
+
+{{phone.brand}}<br>
+{{phone.model}}<br>
+{{phone.price}}<br>
+{{phone.quantity}}<br>
+
+<a href="{% url 'delete' phone.id %}">DELETE</a><br>
+<a href="{% url 'update' phone.id %}">UPDATE</a><br>
+
+{% else %}
+
+Telefon topilmadi!
+
+{% endif %}
