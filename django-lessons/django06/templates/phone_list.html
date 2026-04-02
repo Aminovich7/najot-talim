@@ -1,0 +1,19 @@
+<h1>Phone List</h1>
+
+<form method="get">
+    <input type="text" name="q" placeholder="Search phone...">
+    <button type="submit">Search</button>
+</form>
+
+<a href="{% url 'phone-add' %}">Add Phone</a>
+
+<hr>
+
+{% for phone in phones %}
+    <p>
+        {{ phone.brand }} {{ phone.model }} -
+        ${{ phone.price }}
+        <a href="{% url 'phone-edit' phone.pk %}">Edit</a>
+        <a href="{% url 'phone-delete' phone.pk %}">Delete</a>
+    </p>
+{% endfor %}
