@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+
+<div class="container page">
+  <div style="margin-bottom:1.5rem;">
+    <a href="{% url 'my_products' %}" style="color:var(--text-muted);text-decoration:none;font-size:0.85rem;">← My Watches</a>
+  </div>
+
+  <div class="form-card" style="max-width:680px;">
+    <h1>{{ title }}</h1>
+    <p class="subtitle">
+      {% if product %}Update your watch listing details.
+      {% else %}Fill in the details to list your watch for sale.{% endif %}
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="form-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group">
+          <label for="{{ form.name.id_for_label }}">Watch Name</label>
+          {{ form.name }}
+          {% if form.name.errors %}<ul class="errorlist">{% for e in form.name.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.brand.id_for_label }}">Brand</label>
+          {{ form.brand }}
+          {% if form.brand.errors %}<ul class="errorlist">{% for e in form.brand.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group">
+          <label for="{{ form.model_number.id_for_label }}">Model Number</label>
+          {{ form.model_number }}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.category.id_for_label }}">Category</label>
+          {{ form.category }}
+          {% if form.category.errors %}<ul class="errorlist">{% for e in form.category.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.description.id_for_label }}">Description</label>
+        {{ form.description }}
+        {% if form.description.errors %}<ul class="errorlist">{% for e in form.description.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group">
+          <label for="{{ form.price.id_for_label }}">Price (USD)</label>
+          {{ form.price }}
+          {% if form.price.errors %}<ul class="errorlist">{% for e in form.price.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.condition.id_for_label }}">Condition</label>
+          {{ form.condition }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.image.id_for_label }}">Watch Image</label>
+        {% if product and product.image %}
+          <div style="margin-bottom:0.75rem;">
+            <img src="{{ product.image.url }}" alt="" style="width:100px;height:100px;object-fit:cover;border-radius:4px;border:1px solid var(--border);">
+            <span style="color:var(--text-muted);font-size:0.8rem;margin-left:0.75rem;">Current image</span>
+          </div>
+        {% endif %}
+        {{ form.image }}
+      </div>
+
+      <div class="form-group">
+        <div class="form-checkbox-group">
+          {{ form.is_available }}
+          <label for="{{ form.is_available.id_for_label }}" style="text-transform:none;letter-spacing:0;font-size:0.9rem;color:var(--text);">
+            Available for sale
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+        <button type="submit" class="btn btn-primary">
+          {% if product %}Save Changes{% else %}List Watch{% endif %}
+        </button>
+        <a href="{% url 'my_products' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
