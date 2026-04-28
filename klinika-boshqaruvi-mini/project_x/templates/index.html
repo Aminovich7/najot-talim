@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Bosh panel{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Klinika moliyaviy bosh paneli</h1>
+        <p class="page-description">Konsultatsiyalar, operatsiyalar va palatalar bo'yicha tushum, ulush va foyda ko'rsatkichlari bir joyda jamlandi.</p>
+    </div>
+    <div class="page-badge">
+        <i class="bi bi-calendar3"></i>
+        {% if request.GET.date_from or request.GET.date_to %}
+            Davr: {{ request.GET.date_from|default:"Boshlanishi tanlanmagan" }} - {{ request.GET.date_to|default:"Bugungacha" }}
+        {% else %}
+            Bugungi sana: {% now "d.m.Y" %}
+        {% endif %}
+    </div>
+</section>
+
+<section class="surface-card">
+    <div class="surface-body">
+        <form method="get" class="toolbar">
+            <div class="form-field toolbar-grow">
+                <label for="date_from">Sanadan</label>
+                <input id="date_from" type="date" name="date_from" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="form-field toolbar-grow">
+                <label for="date_to">Sanagacha</label>
+                <input id="date_to" type="date" name="date_to" value="{{ request.GET.date_to }}">
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i>Hisobotni ko'rish</button>
+            {% if request.GET.date_from or request.GET.date_to %}
+                <a href="{% url 'home' %}" class="btn btn-secondary"><i class="bi bi-arrow-counterclockwise"></i>Tozalash</a>
+            {% endif %}
+        </form>
+    </div>
+</section>
+
+<section class="summary-grid" style="margin-top: 20px;">
+    <article class="metric-card">
+        <div class="metric-head">
+            <div>
+                <div class="metric-label">Umumiy tushum</div>
+                <div class="metric-value">{{ total_income|intcomma }} so'm</div>
+            </div>
+            <div class="metric-icon blue"><i class="bi bi-cash-stack"></i></div>
+        </div>
+        <div class="metric-note">Barcha bo'limlardan tushgan jami mablag'.</div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-head">
+            <div>
+                <div class="metric-label">Shifokor ulushi</div>
+                <div class="metric-value">{{ total_doctor_share|intcomma }} so'm</div>
+            </div>
+            <div class="metric-icon gold"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="metric-note">Shifokorlarga ajratilgan umumiy ulush.</div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-head">
+            <div>
+                <div class="metric-label">Xarajatlar</div>
+                <div class="metric-value">{{ total_expense|intcomma }} so'm</div>
+            </div>
+            <div class="metric-icon red"><i class="bi bi-graph-down-arrow"></i></div>
+        </div>
+        <div class="metric-note">Operatsion va bo'lim xarajatlari jamlanmasi.</div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-head">
+            <div>
+                <div class="metric-label">Klinika foydasi</div>
+                <div class="metric-value">{{ total_clinic_profit|intcomma }} so'm</div>
+            </div>
+            <div class="metric-icon green"><i class="bi bi-bar-chart"></i></div>
+        </div>
+        <div class="metric-note">Xarajat va ulushlardan keyingi sof foyda.</div>
+    </article>
+</section>
+
+<section class="section-grid" style="margin-top: 20px;">
+    <article class="surface-card stack">
+        <div class="surface-head">
+            <h2><i class="bi bi-clipboard2-pulse" style="color: var(--primary); margin-right: 8px;"></i>Konsultatsiyalar</h2>
+            <span class="tag tag-blue">Bo'lim</span>
+        </div>
+        <div class="surface-body">
+            <div class="stat-list">
+                <div class="stat-row">
+                    <span class="stat-key">Umumiy tushum</span>
+                    <strong>{{ consultation_income|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Shifokor ulushi</span>
+                    <strong>{{ consultation_doctor_share|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Xarajatlar</span>
+                    <strong>{{ consultation_expense|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Klinika foydasi</span>
+                    <strong>{{ consultation_clinic_profit|intcomma }} so'm</strong>
+                </div>
+            </div>
+            <div class="stat-cta">
+                <a href="{% url 'consultation-report' %}" class="btn btn-secondary"><i class="bi bi-arrow-right"></i>Batafsil hisobot</a>
+            </div>
+        </div>
+    </article>
+
+    <article class="surface-card stack">
+        <div class="surface-head">
+            <h2><i class="bi bi-heart-pulse" style="color: var(--danger); margin-right: 8px;"></i>Operatsiyalar</h2>
+            <span class="tag tag-gold">Bo'lim</span>
+        </div>
+        <div class="surface-body">
+            <div class="stat-list">
+                <div class="stat-row">
+                    <span class="stat-key">Umumiy tushum</span>
+                    <strong>{{ surgery_income|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Shifokor ulushi</span>
+                    <strong>{{ surgery_doctor_share|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Xarajatlar</span>
+                    <strong>{{ surgery_expense|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Klinika foydasi</span>
+                    <strong>{{ surgery_clinic_profit|intcomma }} so'm</strong>
+                </div>
+            </div>
+            <div class="stat-cta">
+                <a href="{% url 'surgery-report' %}" class="btn btn-secondary"><i class="bi bi-arrow-right"></i>Batafsil hisobot</a>
+            </div>
+        </div>
+    </article>
+
+    <article class="surface-card stack">
+        <div class="surface-head">
+            <h2><i class="bi bi-building" style="color: var(--success); margin-right: 8px;"></i>Palatalar</h2>
+            <span class="tag tag-green">Bo'lim</span>
+        </div>
+        <div class="surface-body">
+            <div class="stat-list">
+                <div class="stat-row">
+                    <span class="stat-key">Umumiy tushum</span>
+                    <strong>{{ room_income|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Shifokor ulushi</span>
+                    <strong>{{ room_doctor_share|intcomma }} so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Xarajatlar</span>
+                    <strong>0 so'm</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-key">Klinika foydasi</span>
+                    <strong>{{ room_clinic_profit|intcomma }} so'm</strong>
+                </div>
+            </div>
+            <div class="stat-cta">
+                <a href="{% url 'room-report' %}" class="btn btn-secondary"><i class="bi bi-arrow-right"></i>Batafsil hisobot</a>
+            </div>
+        </div>
+    </article>
+</section>
+{% endblock %}

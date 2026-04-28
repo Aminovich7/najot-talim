@@ -1,0 +1,146 @@
+<!--{% extends 'base.html' %}-->
+<!--{% load humanize %}-->
+
+<!--{% block title %}Konsultatsiyalar hisoboti{% endblock %}-->
+
+<!--{% block content %}-->
+<!--<section class="report-shell">-->
+<!--    <div class="report-header">-->
+<!--        <div>-->
+<!--            <h1 class="page-title">Konsultatsiyalar hisoboti</h1>-->
+<!--            <p class="page-description">Ko'rik va qayta ko'riklar bo'yicha tushum, shifokor ulushi va klinika foydasi kesimidagi umumiy ko'rinish.</p>-->
+<!--        </div>-->
+<!--        <div class="report-period">-->
+<!--            <i class="bi bi-calendar-range"></i>-->
+<!--            {% if request.GET.date_from or request.GET.date_to %}-->
+<!--                {{ request.GET.date_from|default:"Boshlanishi tanlanmagan" }} - {{ request.GET.date_to|default:"Bugungacha" }}-->
+<!--            {% else %}-->
+<!--                Bugungi hisobot: {% now "d.m.Y" %}-->
+<!--            {% endif %}-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <section class="surface-card">-->
+<!--        <div class="surface-body">-->
+<!--            <form method="get" class="toolbar">-->
+<!--                <div class="form-field toolbar-grow">-->
+<!--                    <label for="report_date_from">Sanadan</label>-->
+<!--                    <input id="report_date_from" type="date" name="date_from" value="{{ request.GET.date_from }}">-->
+<!--                </div>-->
+<!--                <div class="form-field toolbar-grow">-->
+<!--                    <label for="report_date_to">Sanagacha</label>-->
+<!--                    <input id="report_date_to" type="date" name="date_to" value="{{ request.GET.date_to }}">-->
+<!--                </div>-->
+<!--                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i>Filtrlash</button>-->
+<!--            </form>-->
+<!--        </div>-->
+<!--    </section>-->
+
+<!--    <section class="summary-grid">-->
+<!--        <article class="metric-card">-->
+<!--            <div class="metric-head">-->
+<!--                <div>-->
+<!--                    <div class="metric-label">Umumiy tushum</div>-->
+<!--                    <div class="metric-value">{{ total_income|intcomma }} so'm</div>-->
+<!--                </div>-->
+<!--                <div class="metric-icon blue"><i class="bi bi-cash-stack"></i></div>-->
+<!--            </div>-->
+<!--        </article>-->
+<!--        <article class="metric-card">-->
+<!--            <div class="metric-head">-->
+<!--                <div>-->
+<!--                    <div class="metric-label">Shifokor ulushi</div>-->
+<!--                    <div class="metric-value">{{ total_doctor_share|intcomma }} so'm</div>-->
+<!--                </div>-->
+<!--                <div class="metric-icon gold"><i class="bi bi-people"></i></div>-->
+<!--            </div>-->
+<!--        </article>-->
+<!--        <article class="metric-card">-->
+<!--            <div class="metric-head">-->
+<!--                <div>-->
+<!--                    <div class="metric-label">Xarajatlar</div>-->
+<!--                    <div class="metric-value">{{ total_consultation_expense|intcomma }} so'm</div>-->
+<!--                </div>-->
+<!--                <div class="metric-icon red"><i class="bi bi-activity"></i></div>-->
+<!--            </div>-->
+<!--        </article>-->
+<!--        <article class="metric-card">-->
+<!--            <div class="metric-head">-->
+<!--                <div>-->
+<!--                    <div class="metric-label">Klinika foydasi</div>-->
+<!--                    <div class="metric-value">{{ total_clinic_profit|intcomma }} so'm</div>-->
+<!--                </div>-->
+<!--                <div class="metric-icon green"><i class="bi bi-bar-chart"></i></div>-->
+<!--            </div>-->
+<!--        </article>-->
+<!--    </section>-->
+
+<!--    <section class="surface-card">-->
+<!--        <div class="surface-head">-->
+<!--            <h2>Ko'rik turlari bo'yicha natija</h2>-->
+<!--        </div>-->
+<!--        <div class="surface-body">-->
+<!--            <div class="table-wrap">-->
+<!--                <table class="data-table">-->
+<!--                    <thead>-->
+<!--                        <tr>-->
+<!--                            <th>Ko'rik turi</th>-->
+<!--                            <th>Soni</th>-->
+<!--                            <th>Jami summa</th>-->
+<!--                        </tr>-->
+<!--                    </thead>-->
+<!--                    <tbody>-->
+<!--                        <tr>-->
+<!--                            <td>Ko'rik</td>-->
+<!--                            <td>{{ korik.count|intcomma }}</td>-->
+<!--                            <td class="data-value income">{{ korik.total|intcomma }} so'm</td>-->
+<!--                        </tr>-->
+<!--                        <tr>-->
+<!--                            <td>Qayta ko'rik</td>-->
+<!--                            <td>{{ qayta_korik.count|intcomma }}</td>-->
+<!--                            <td class="data-value income">{{ qayta_korik.total|intcomma }} so'm</td>-->
+<!--                        </tr>-->
+<!--                        <tr>-->
+<!--                            <td><strong>Umumiy tushum</strong></td>-->
+<!--                            <td></td>-->
+<!--                            <td class="data-value income"><strong>{{ total_income|intcomma }} so'm</strong></td>-->
+<!--                        </tr>-->
+<!--                    </tbody>-->
+<!--                </table>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </section>-->
+
+<!--    <section class="surface-card">-->
+<!--        <div class="surface-head">-->
+<!--            <h2>Shifokorlar ulushi tafsiloti</h2>-->
+<!--        </div>-->
+<!--        <div class="surface-body">-->
+<!--            <div class="table-wrap">-->
+<!--                <table class="data-table">-->
+<!--                    <thead>-->
+<!--                        <tr>-->
+<!--                            <th>Shifokor</th>-->
+<!--                            <th>Konsultatsiyalar soni</th>-->
+<!--                            <th>Jami ulush</th>-->
+<!--                        </tr>-->
+<!--                    </thead>-->
+<!--                    <tbody>-->
+<!--                        {% for doctor in doctor_shares %}-->
+<!--                            <tr>-->
+<!--                                <td>{{ doctor.name }}</td>-->
+<!--                                <td>{{ doctor.count|intcomma }}</td>-->
+<!--                                <td class="data-value">{{ doctor.total_share|floatformat:0|intcomma }} so'm</td>-->
+<!--                            </tr>-->
+<!--                        {% empty %}-->
+<!--                            <tr>-->
+<!--                                <td colspan="3" class="empty-state">Ma'lumot topilmadi</td>-->
+<!--                            </tr>-->
+<!--                        {% endfor %}-->
+<!--                    </tbody>-->
+<!--                </table>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </section>-->
+<!--</section>-->
+<!--{% endblock %}-->

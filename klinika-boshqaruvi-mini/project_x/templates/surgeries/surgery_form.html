@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Operatsiyani tahrirlash{% else %}Yangi operatsiya{% endif %}{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">{% if form.instance.pk %}Operatsiyani tahrirlash{% else %}Yangi operatsiya qo'shish{% endif %}</h1>
+        <p class="page-description">Operatsiya yozuvi, xarajatlar va foiz ma'lumotlarini aniq ko'rinishda kiriting.</p>
+    </div>
+</section>
+
+<section class="surface-card" style="max-width: 860px; margin: 0 auto;">
+    <div class="surface-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-grid">
+                {% for field in form %}
+                    <div class="form-field {% if field.name == 'date' or field.name == 'doctor' %}full{% endif %}">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="field-help">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="field-error">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i>Saqlash</button>
+                <a href="{% url 'surgery-list' %}" class="btn btn-secondary">Bekor qilish</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
