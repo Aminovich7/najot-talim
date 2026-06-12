@@ -1,9 +1,9 @@
-from sqlalchemy import Column, String, Boolean, Integer
+from sqlalchemy import Column, String, Integer
 from database import Base
 
 
 class Watch(Base):
     __tablename__ = 'watches'
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     country = Column(String)

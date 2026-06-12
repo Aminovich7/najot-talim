@@ -1,7 +1,6 @@
-from models import Watch
-from schema import WatchCreateSchema
+from watches.models import Watch
+from watches.schema import WatchCreateSchema
 from sqlalchemy.orm import Session
-from fastapi import status
 from fastapi.exceptions import HTTPException
 
 
@@ -13,7 +12,7 @@ def watch_create(db: Session, watch: WatchCreateSchema):
     )
     db.add(new_watch)
     db.commit()
-    db.refreshe(new_watch)
+    db.refresh(new_watch)
     return new_watch
 
 def watch_list(db:Session):
