@@ -72,6 +72,39 @@ def get_book(book_id: int, db: Session = Depends(get_db)):
     return book
 
 
+@router.get("/{book_id}/comments", response_model=list[schema.CommentRead])
+def book_comments(
+    book_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    book = crud.get_book(db=db, book_id=book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    return crud.get_comments(db=db, skip=skip, limit=limit, book_id=book_id)
+
+
+@router.get("/{book_id}/saved-by-me", response_model=schema.SavedRead)
+def saved_by_me(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
+    book = crud.get_book(db=db, book_id=book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+
+    saved_item = crud.get_saved_item_by_user_and_book(
+        db=db,
+        user_id=current_user.id,
+        book_id=book_id,
+    )
+    if saved_item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book is not saved by current user")
+    return saved_item
+
+
 @router.post("/create", response_model=schema.BookRead, status_code=status.HTTP_201_CREATED)
 def create_book(
     book_in: schema.BookCreate,

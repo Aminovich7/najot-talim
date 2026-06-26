@@ -29,6 +29,11 @@ def _require_owner(owner_id: int | None, current_user: User, resource_name: str)
         )
 
 
+def _apply_updates(instance, payload) -> None:
+    for field, value in _dump_model(payload, exclude_unset=True).items():
+        setattr(instance, field, value)
+
+
 def get_books(
     db: Session,
     skip: int = 0,
@@ -83,6 +88,14 @@ def get_book(db: Session, book_id: int) -> Book | None:
     return db.query(Book).filter(Book.id == book_id).first()
 
 
+def get_books_by_author(db: Session, author_id: int, skip: int = 0, limit: int = 100) -> list[Book]:
+    return get_books(db=db, skip=skip, limit=limit, author_id=author_id)
+
+
+def get_books_by_category(db: Session, category_id: int, skip: int = 0, limit: int = 100) -> list[Book]:
+    return get_books(db=db, skip=skip, limit=limit, category_id=category_id)
+
+
 def create_book(db: Session, book_in: BookCreate, current_user: User) -> Book:
     book = Book(**_dump_model(book_in), owner_id=current_user.id)
     db.add(book)
@@ -114,6 +127,86 @@ def delete_book(db: Session, book_id: int, current_user: User) -> Book | None:
     db.delete(book)
     db.commit()
     return book
+
+
+def get_authors(db: Session, skip: int = 0, limit: int = 100) -> list[Author]:
+    return db.query(Author).order_by(asc(Author.id)).offset(skip).limit(limit).all()
+
+
+def get_author(db: Session, author_id: int) -> Author | None:
+    return db.query(Author).filter(Author.id == author_id).first()
+
+
+def create_author(db: Session, fullname: str) -> Author:
+    author = Author(fullname=fullname)
+    db.add(author)
+    db.commit()
+    db.refresh(author)
+    return author
+
+
+def update_author(db: Session, author_id: int, fullname: str) -> Author | None:
+    author = get_author(db, author_id)
+    if author is None:
+        return None
+    author.fullname = fullname
+    db.commit()
+    db.refresh(author)
+    return author
+
+
+def delete_author(db: Session, author_id: int) -> Author | None:
+    author = get_author(db, author_id)
+    if author is None:
+        return None
+    if db.query(Book).filter(Book.author_id == author_id).first() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Author still has books",
+        )
+    db.delete(author)
+    db.commit()
+    return author
+
+
+def get_categories(db: Session, skip: int = 0, limit: int = 100) -> list[Category]:
+    return db.query(Category).order_by(asc(Category.id)).offset(skip).limit(limit).all()
+
+
+def get_category(db: Session, category_id: int) -> Category | None:
+    return db.query(Category).filter(Category.id == category_id).first()
+
+
+def create_category(db: Session, title: str) -> Category:
+    category = Category(title=title)
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+def update_category(db: Session, category_id: int, title: str) -> Category | None:
+    category = get_category(db, category_id)
+    if category is None:
+        return None
+    category.title = title
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+def delete_category(db: Session, category_id: int) -> Category | None:
+    category = get_category(db, category_id)
+    if category is None:
+        return None
+    if db.query(Book).filter(Book.category_id == category_id).first() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Category still has books",
+        )
+    db.delete(category)
+    db.commit()
+    return category
 
 
 def get_comments(
@@ -149,8 +242,7 @@ def update_comment(db: Session, comment_id: int, comment_in: CommentUpdate, curr
         return None
     _require_owner(comment.user_id, current_user, "comment")
 
-    for field, value in _dump_model(comment_in, exclude_unset=True).items():
-        setattr(comment, field, value)
+    _apply_updates(comment, comment_in)
 
     db.commit()
     db.refresh(comment)
@@ -206,8 +298,7 @@ def update_saved_item(db: Session, saved_id: int, saved_in: SavedUpdate, current
         return None
     _require_owner(saved.user_id, current_user, "saved item")
 
-    for field, value in _dump_model(saved_in, exclude_unset=True).items():
-        setattr(saved, field, value)
+    _apply_updates(saved, saved_in)
 
     db.commit()
     db.refresh(saved)

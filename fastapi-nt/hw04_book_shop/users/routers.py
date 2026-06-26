@@ -1,8 +1,10 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from books import crud as book_crud
+from books import schema as book_schema
 from db import get_db
 from users import crud, schema
 from users.permissions import get_current_active_user
@@ -36,6 +38,26 @@ def login(login_in: schema.UserLogin, db: Session = Depends(get_db)):
 @router.get("/profile", response_model=schema.UserRead)
 def profile(current_user=Depends(get_current_active_user)):
     return current_user
+
+
+@router.get("/me/comments", response_model=list[book_schema.CommentRead])
+def my_comments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
+    return book_crud.get_comments(db=db, skip=skip, limit=limit, user_id=current_user.id)
+
+
+@router.get("/me/saved", response_model=list[book_schema.SavedRead])
+def my_saved(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_active_user),
+):
+    return book_crud.get_saved_items(db=db, skip=skip, limit=limit, user_id=current_user.id)
 
 
 @router.put("/profile-update", response_model=schema.UserRead)

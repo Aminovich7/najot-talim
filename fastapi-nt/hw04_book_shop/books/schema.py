@@ -47,6 +47,42 @@ class BookRead(ORMBaseModel):
     created_at: datetime | None = None
 
 
+class AuthorBase(BaseModel):
+    fullname: str = Field(..., min_length=1, max_length=120)
+
+
+class AuthorCreate(AuthorBase):
+    pass
+
+
+class AuthorUpdate(BaseModel):
+    fullname: str | None = Field(default=None, min_length=1, max_length=120)
+
+
+class AuthorRead(ORMBaseModel):
+    id: int
+    fullname: str
+    created_at: datetime | None = None
+
+
+class CategoryBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+
+
+class CategoryCreate(CategoryBase):
+    pass
+
+
+class CategoryUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+
+
+class CategoryRead(ORMBaseModel):
+    id: int
+    title: str
+    created_at: datetime | None = None
+
+
 class CommentBase(BaseModel):
     sumary: str = Field(..., min_length=1, max_length=128)
     book_id: int

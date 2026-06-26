@@ -1,0 +1,690 @@
+{
+  "info": {
+    "_postman_id": "b0f15c62-4d80-4b9c-8c22-4e5a7cbd7ef3",
+    "name": "Book Shop API",
+    "description": "Import this collection together with the Book Shop Local environment to exercise the full FastAPI API surface.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"full_name\": \"{{fullName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/register"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id !== undefined && json.id !== null) {",
+                  "  pm.environment.set('userId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.environment.set('accessToken', json.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/profile"
+            }
+          }
+        },
+        {
+          "name": "My Comments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/me/comments?skip=0&limit=100"
+            }
+          }
+        },
+        {
+          "name": "My Saved",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/me/saved?skip=0&limit=100"
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Postman User Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/profile-update"
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{password}}\",\n  \"new_password\": \"{{newPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/change-password"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.environment.set('password', pm.environment.get('newPassword'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/users/refresh"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.environment.set('accessToken', json.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/users/logout"
+            }
+          }
+        },
+        {
+          "name": "Delete Profile",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/users/profile-delete"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authors",
+      "item": [
+        {
+          "name": "List Authors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/authors/list?skip=0&limit=100"
+            }
+          }
+        },
+        {
+          "name": "Author Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/authors/detail/{{authorId}}"
+            }
+          }
+        },
+        {
+          "name": "Author Books",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/authors/{{authorId}}/books?skip=0&limit=100&search=Postman&has_image=true&sort_by=created_at&order=desc"
+            }
+          }
+        },
+        {
+          "name": "Create Author",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"{{authorName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/authors/create"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id !== undefined && json.id !== null) {",
+                  "  pm.environment.set('authorId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Author",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"{{authorName}} Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/authors/update/{{authorId}}"
+            }
+          }
+        },
+        {
+          "name": "Delete Author",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/authors/delete/{{authorId}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/categories/list?skip=0&limit=100"
+            }
+          }
+        },
+        {
+          "name": "Category Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/categories/detail/{{categoryId}}"
+            }
+          }
+        },
+        {
+          "name": "Category Books",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}/books?skip=0&limit=100&search=Postman&has_image=true&sort_by=created_at&order=desc"
+            }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{categoryTitle}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/create"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id !== undefined && json.id !== null) {",
+                  "  pm.environment.set('categoryId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{categoryTitle}} Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/update/{{categoryId}}"
+            }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/categories/delete/{{categoryId}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Books",
+      "item": [
+        {
+          "name": "List Books",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/books/list?skip=0&limit=100&search=Postman&owner_id={{userId}}&author_id={{authorId}}&category_id={{categoryId}}&has_image=true&sort_by=created_at&order=desc"
+            }
+          }
+        },
+        {
+          "name": "My Books",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/books/mine?skip=0&limit=100&search=Postman&author_id={{authorId}}&category_id={{categoryId}}&has_image=true&sort_by=created_at&order=desc"
+            }
+          }
+        },
+        {
+          "name": "Book Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/books/detail/{{bookId}}"
+            }
+          }
+        },
+        {
+          "name": "Book Comments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/books/{{bookId}}/comments?skip=0&limit=100"
+            }
+          }
+        },
+        {
+          "name": "Saved By Me",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/books/{{bookId}}/saved-by-me"
+            }
+          }
+        },
+        {
+          "name": "Create Book",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{bookTitle}}\",\n  \"image\": \"https://example.com/postman-book.jpg\",\n  \"desc\": \"{{bookDesc}}\",\n  \"author_id\": {{authorId}},\n  \"category_id\": {{categoryId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/books/create"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id !== undefined && json.id !== null) {",
+                  "  pm.environment.set('bookId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Book",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{bookTitle}} Updated\",\n  \"desc\": \"Updated from Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/books/update/{{bookId}}"
+            }
+          }
+        },
+        {
+          "name": "Delete Book",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/books/delete/{{bookId}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "List Comments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/comments/list?skip=0&limit=100&book_id={{bookId}}"
+            }
+          }
+        },
+        {
+          "name": "My Comments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/comments/mine?skip=0&limit=100"
+            }
+          }
+        },
+        {
+          "name": "Comment Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/comments/detail/{{commentId}}"
+            }
+          }
+        },
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sumary\": \"{{commentSummary}}\",\n  \"book_id\": {{bookId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/create"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id !== undefined && json.id !== null) {",
+                  "  pm.environment.set('commentId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sumary\": \"{{commentSummary}} Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/update/{{commentId}}"
+            }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/comments/delete/{{commentId}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Saved",
+      "item": [
+        {
+          "name": "List Saved",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/saved/list?skip=0&limit=100"
+            }
+          }
+        },
+        {
+          "name": "Create Saved",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"book_id\": {{bookId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/saved/create"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id !== undefined && json.id !== null) {",
+                  "  pm.environment.set('savedId', String(json.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Saved",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/saved/delete/{{savedId}}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
