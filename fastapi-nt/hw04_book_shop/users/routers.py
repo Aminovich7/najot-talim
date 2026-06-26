@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from db import get_db
 from users import crud, schema
-from users.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_current_user
+from users.permissions import get_current_active_user
+from users.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -33,7 +34,7 @@ def login(login_in: schema.UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/profile", response_model=schema.UserRead)
-def profile(current_user=Depends(get_current_user)):
+def profile(current_user=Depends(get_current_active_user)):
     return current_user
 
 
@@ -41,7 +42,7 @@ def profile(current_user=Depends(get_current_user)):
 def update_profile(
     user_in: schema.UserProfileUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_active_user),
 ):
     if user_in.username and user_in.username != current_user.username:
         existing_user = crud.get_user_by_username(db, user_in.username)
@@ -60,7 +61,7 @@ def update_profile(
 def change_password(
     payload: schema.ChangePassword,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_active_user),
 ):
     if not crud.authenticate_user(db, current_user.username, payload.current_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
@@ -70,7 +71,7 @@ def change_password(
 
 
 @router.post("/refresh", response_model=schema.Token)
-def refresh_token(current_user=Depends(get_current_user)):
+def refresh_token(current_user=Depends(get_current_active_user)):
     access_token = create_access_token(data={"sub": str(current_user.id)})
     return schema.Token(access_token=access_token)
 
@@ -78,7 +79,7 @@ def refresh_token(current_user=Depends(get_current_user)):
 @router.delete("/profile-delete", response_model=schema.Message)
 def delete_profile(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_active_user),
 ):
     crud.delete_user(db, current_user)
     return schema.Message(detail="Account deleted successfully")

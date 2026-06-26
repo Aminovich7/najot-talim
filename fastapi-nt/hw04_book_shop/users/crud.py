@@ -34,6 +34,8 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
     user = get_user_by_username(db, username) or get_user_by_email(db, username)
     if user is None:
         return None
+    if not user.is_active:
+        return None
     if not verify_password(password, user.hashed_password):
         return None
     return user

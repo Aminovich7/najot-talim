@@ -29,6 +29,7 @@ class Book(Base):
     title = Column(String(120))
     image = Column(String(120), nullable=True)
     desc = Column(Text, nullable=True)
+    owner_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=True, index=True)
     author_id = Column(Integer, ForeignKey('authors.id', ondelete='CASCADE'))
     category_id = Column(Integer, ForeignKey('categories.id', ondelete='CASCADE'))
     created_at = Column(DateTime, default=func.now)
@@ -36,20 +37,27 @@ class Book(Base):
     
     author = relationship('Author', back_populates='books')
     category = relationship('Category', back_populates='books')
-    reviews = relationship('Review', back_populates='book')
+    owner = relationship('User', back_populates='books')
+    comments = relationship('Comment', back_populates='book', cascade='all, delete-orphan')
+    saved_items = relationship('Saved', back_populates='book', cascade='all, delete-orphan')
     
 class Comment (Base) :
     __tablename__ = "comments"
     id = Column(Integer, primary_key=True)
     sumary = Column(String(128))
-    user = Column(String(12))
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=True, index=True)
     book_id = Column(Integer, ForeignKey('books.id', ondelete='CASCADE'))
+    user = relationship('User', back_populates='comments')
     book = relationship('Book', back_populates='comments')
 
 class Saved(Base) :
     __tablename__ = 'saveds'
+    __table_args__ = (
+        UniqueConstraint('user_id', 'book_id', name='uq_saveds_user_book'),
+    )
 
     id = Column(Integer, primary_key=True)
-    user = Column(String(12))
-    book_id = Column(Integer, ForeignKey( 'books.id', ondelete= 'CASCADE'))
-    book = relationship(' Book')
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=True, index=True)
+    book_id = Column(Integer, ForeignKey('books.id', ondelete='CASCADE'))
+    user = relationship('User', back_populates='saved_items')
+    book = relationship('Book', back_populates='saved_items')

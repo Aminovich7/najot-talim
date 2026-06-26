@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
+from sqlalchemy.orm import relationship
 
 from db import Base
 
@@ -13,3 +14,7 @@ class User(Base):
     full_name = Column(String(120), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=func.now)
+
+    books = relationship("Book", back_populates="owner", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    saved_items = relationship("Saved", back_populates="user", cascade="all, delete-orphan")

@@ -41,6 +41,7 @@ class BookRead(ORMBaseModel):
     title: str
     image: str | None = None
     desc: str | None = None
+    owner_id: int | None = None
     author_id: int
     category_id: int
     created_at: datetime | None = None
@@ -48,7 +49,6 @@ class BookRead(ORMBaseModel):
 
 class CommentBase(BaseModel):
     sumary: str = Field(..., min_length=1, max_length=128)
-    user: str = Field(..., min_length=1, max_length=12)
     book_id: int
 
 
@@ -58,19 +58,17 @@ class CommentCreate(CommentBase):
 
 class CommentUpdate(BaseModel):
     sumary: str | None = Field(default=None, min_length=1, max_length=128)
-    user: str | None = Field(default=None, min_length=1, max_length=12)
     book_id: int | None = None
 
 
 class CommentRead(ORMBaseModel):
     id: int
     sumary: str
-    user: str
+    user_id: int | None = None
     book_id: int
 
 
 class SavedBase(BaseModel):
-    user: str = Field(..., min_length=1, max_length=12)
     book_id: int
 
 
@@ -79,11 +77,10 @@ class SavedCreate(SavedBase):
 
 
 class SavedUpdate(BaseModel):
-    user: str | None = Field(default=None, min_length=1, max_length=12)
     book_id: int | None = None
 
 
 class SavedRead(ORMBaseModel):
     id: int
-    user: str
+    user_id: int | None = None
     book_id: int
