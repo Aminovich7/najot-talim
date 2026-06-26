@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from users.models import User
 from users.security import get_password_hash, verify_password
-from users.schema import UserRegister
+from users.schema import UserProfileUpdate, UserRegister
 
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
@@ -38,3 +38,24 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
         return None
     return user
 
+
+def update_user(db: Session, user: User, user_in: UserProfileUpdate) -> User:
+    data = user_in.model_dump(exclude_unset=True) if hasattr(user_in, "model_dump") else user_in.dict(exclude_unset=True)
+    for field, value in data.items():
+        setattr(user, field, value)
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def change_password(db: Session, user: User, new_password: str) -> User:
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_user(db: Session, user: User) -> None:
+    db.delete(user)
+    db.commit()

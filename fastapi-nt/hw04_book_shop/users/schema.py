@@ -37,9 +37,24 @@ class UserRead(ORMBaseModel):
     created_at: datetime | None = None
 
 
+class UserProfileUpdate(BaseModel):
+    username: str | None = Field(default=None, min_length=3, max_length=64)
+    email: str | None = Field(default=None, min_length=5, max_length=120)
+    full_name: str | None = Field(default=None, max_length=120)
+
+
+class ChangePassword(BaseModel):
+    current_password: str = Field(..., min_length=6, max_length=128)
+    new_password: str = Field(..., min_length=6, max_length=128)
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class Message(BaseModel):
+    detail: str
 
 
 class TokenPayload(BaseModel):

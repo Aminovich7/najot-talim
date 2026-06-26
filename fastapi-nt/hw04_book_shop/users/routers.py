@@ -35,3 +35,55 @@ def login(login_in: schema.UserLogin, db: Session = Depends(get_db)):
 @router.get("/profile", response_model=schema.UserRead)
 def profile(current_user=Depends(get_current_user)):
     return current_user
+
+
+@router.put("/profile-update", response_model=schema.UserRead)
+def update_profile(
+    user_in: schema.UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if user_in.username and user_in.username != current_user.username:
+        existing_user = crud.get_user_by_username(db, user_in.username)
+        if existing_user is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
+
+    if user_in.email and user_in.email != current_user.email:
+        existing_user = crud.get_user_by_email(db, user_in.email)
+        if existing_user is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
+
+    return crud.update_user(db, current_user, user_in)
+
+
+@router.post("/change-password", response_model=schema.Message)
+def change_password(
+    payload: schema.ChangePassword,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if not crud.authenticate_user(db, current_user.username, payload.current_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    crud.change_password(db, current_user, payload.new_password)
+    return schema.Message(detail="Password updated successfully")
+
+
+@router.post("/refresh", response_model=schema.Token)
+def refresh_token(current_user=Depends(get_current_user)):
+    access_token = create_access_token(data={"sub": str(current_user.id)})
+    return schema.Token(access_token=access_token)
+
+
+@router.delete("/profile-delete", response_model=schema.Message)
+def delete_profile(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    crud.delete_user(db, current_user)
+    return schema.Message(detail="Account deleted successfully")
+
+
+@router.post("/logout", response_model=schema.Message)
+def logout():
+    return schema.Message(detail="Logout successful. Discard the access token on the client.")
