@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import select
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
-from models import User
-from schemas import UserCreate, Token
-from security import (
+from users.schemas import RefreshTokenRequest
+from users.models import User, BlackList
+from users.schemas import UserCreate, Token, ChangeProfileSchema, UserResponse, PasswordChangeSchema, LogoutSchema
+from users.permissions import is_authenticated
+from users.security import (
     hash_password,
     verify_password,
     create_access_token,
@@ -66,19 +69,27 @@ async def login(
             status_code=status.HTTP_403_FORBIDDEN, detail="Foydalanuvchi faol emas"
         )
 
-    token_payload = {"sub": user.id}
+    token_payload = {"sub": str(user.id)}
     access_token = create_access_token(token_payload)
     refresh_token = create_refresh_token(token_payload)
 
-    return {
-        'msg': 'Signin',
-        'status':status.HTTP_200_OK,
-        'tokens' : Token(access_token=access_token, refresh_token=refresh_token)
-    }
+    return  Token(access_token=access_token, refresh_token=refresh_token)
+    
+
 
 @router.post("/refresh", response_model=Token)
-async def refresh_access_token(refresh_token: str):
-    payload = decode_token(refresh_token)
+async def refresh_access_token(data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    payload = decode_token(str(data.refresh_token))
+
+    result = await db.execute(select(BlackList).where(BlackList.refresh == data.refresh_token))
+    token = result.scalar_one_or_none()
+
+    if token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token yaroqsiz yoki muddati o'tgan",
+        )
+
     if payload is None or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -86,12 +97,11 @@ async def refresh_access_token(refresh_token: str):
         )
 
     user_id = payload.get("sub")
-    token_payload = {"sub": user_id}
+    token_payload = {"sub": str(user_id)}
     new_access_token = create_access_token(token_payload)
     new_refresh_token = create_refresh_token(token_payload)
 
     return Token(access_token=new_access_token, refresh_token=new_refresh_token)
-
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
@@ -109,7 +119,7 @@ async def get_current_user(
     if user_id is None:
         raise credentials_exception
 
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
@@ -120,3 +130,62 @@ async def get_current_user(
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.patch('/update-profile', response_model=UserResponse, status_code=200)
+async def update_profile(new_data : ChangeProfileSchema, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    
+    data = new_data.model_dump(exclude_unset=True)
+    for key, value in data.items():
+        setattr(current_user, key, value)
+
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.patch('/change-password', status_code=200)
+async def change_password(new_data : PasswordChangeSchema, current_user : User = Depends(get_current_user), db : AsyncSession = Depends(get_db)):
+    if not verify_password(new_data.old_password, current_user.password):
+        raise HTTPException(detail="Eski parol xato", status_code=400)
+    
+    if verify_password(new_data.new_password, current_user.password):
+        raise HTTPException(detail="Yangi parol eskisidan farq qilishi kerak", status_code=400)
+
+    if new_data.new_password != new_data.confirm_password:
+        raise HTTPException(detail="Parollar mos emas", status_code=400)
+    
+    current_user.password = hash_password(new_data.new_password)
+
+    await db.commit()
+    await db.refresh(current_user)
+    return {
+        "msg":"Parol uzgartirildi"
+    }
+
+
+@router.post('/logout')
+async def logout(data: LogoutSchema, db: AsyncSession = Depends(get_db), _: None = Depends(is_authenticated)):
+    payload = decode_token(data.refresh)
+
+    type = payload.get('type')
+    if type is None or type != 'refresh':
+        raise HTTPException(detail='Refresh is not valid', status_code=status.HTTP_400_BAD_REQUEST)
+
+    refresh_token = await db.execute(select(BlackList).where(BlackList.refresh == data.refresh))
+    token = refresh_token.scalar_one_or_none()
+
+    if token:
+        raise HTTPException(detail='Refresh is not valid', status_code=status.HTTP_400_BAD_REQUEST)
+
+    refresh = BlackList(refresh=data.refresh, exp_time=datetime.fromtimestamp(payload.get('exp')))
+
+    db.add(refresh)
+
+    await db.commit()
+    await db.refresh(refresh)
+
+    return {
+        'msg': 'Logout',
+        'status': status.HTTP_200_OK
+    }

@@ -15,5 +15,11 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)
     created_at = Column(DateTime, default=func.now())
     
-    
-    
+
+
+class BlackList(Base):
+    __tablename__ = "blacklist"
+
+    id = Column(Integer, primary_key=True)
+    refresh = Column(String, unique=True, index=True)
+    exp_time = Column(DateTime)
