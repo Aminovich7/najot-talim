@@ -1,0 +1,710 @@
+=====================================================================
+SOCIAL NETWORK BACKEND — TO'LIQ ISHLASH YO'L XARITASI (ROADMAP)
+=====================================================================
+Bu fayl — kodsiz, faqat mantiq va ketma-ketlik. Har bir bosqichda:
+nima yozish kerak, qanday fieldlar, qanday logika, nima qaytariladi.
+Modellar (User, Post, Comment, Like) va core/security.py, core/config.py
+allaqachon tayyor — shulardan boshlaymiz.
+
+Umumiy tartib:
+1. SCHEMAS (Pydantic)
+2. CORE/DEPENDENCIES
+3. REPOSITORIES
+4. SERVICES
+5. ROUTERS (API)
+6. TASKS (background cleanup)
+7. TESTLAR
+
+=====================================================================
+1-BOSQICH: SCHEMAS (Pydantic)
+=====================================================================
+Maqsad: API orqali qanday ma'lumot kirishi va chiqishi mumkinligini
+belgilash + avtomatik validatsiya (TZ 1.7-band).
+
+---------------------------------------------------------------
+1.1. schemas/user.py
+---------------------------------------------------------------
+
+UserCreate (ro'yxatdan o'tish uchun kiruvchi ma'lumot):
+- email: EmailStr (pydantic o'zi email formatini tekshiradi)
+- username: str, min_length=3, max_length=32
+  * qo'shimcha validator: faqat lotin harflari, raqamlar, "_" belgisi
+    (regex: ^[a-zA-Z0-9_]+$)
+- full_name: str, min_length=2, max_length=100
+  * validator: lotin/kirill harflari, bo'shliq, defis ruxsat etiladi
+- password: str, min_length=8 (TZ'da aniq son yo'q, lekin xavfsizlik
+  uchun kamida 8 belgi tavsiya qilinadi — o'zingiz belgilang)
+
+UserLogin (kirish uchun):
+- email_or_username: str  (yoki alohida ikkita variant qilsangiz ham
+  bo'ladi: email: EmailStr | None, username: str | None)
+- password: str
+
+UserUpdate (profil tahrirlash — PATCH /users/me):
+- full_name: str | None = None (validatsiya UserCreate'dagi kabi)
+- username: str | None = None (validatsiya UserCreate'dagi kabi)
+  * Barcha fieldlar Optional bo'lishi kerak, chunki foydalanuvchi
+    faqat bitta fieldni yangilashi mumkin (PATCH semantikasi).
+
+UserOut (API javobida qaytariladigan — PAROLSIZ):
+- id: UUID
+- email: EmailStr
+- username: str
+- full_name: str
+- is_verified: bool
+- created_at: datetime
+  * model_config = ConfigDict(from_attributes=True) — bu SQLAlchemy
+    obyektidan to'g'ridan-to'g'ri Pydantic modelga aylantirish uchun
+    kerak (eski nomi: orm_mode).
+
+---------------------------------------------------------------
+1.2. schemas/token.py
+---------------------------------------------------------------
+
+Token (login/register javobida qaytariladigan):
+- access_token: str
+- refresh_token: str (agar refresh ishlatsangiz)
+- token_type: str = "bearer"
+
+TokenPayload (ixtiyoriy, decode qilingan token ichidagi ma'lumot
+uchun, dependencies.py'da ishlatish mumkin):
+- sub: str (user id)
+- exp: int
+- type: str
+
+---------------------------------------------------------------
+1.3. schemas/post.py
+---------------------------------------------------------------
+
+PostCreate:
+- title: str, min_length=5, max_length=255
+- content: str, min_length=1, max_length=10000
+
+PostUpdate (PATCH uchun, hammasi Optional):
+- title: str | None = None
+- content: str | None = None
+
+PostOut (oddiy ro'yxat uchun — GET /posts):
+- id: UUID
+- author_id: UUID
+- title: str
+- content: str
+- created_at: datetime
+- updated_at: datetime
+- likes_count: int   (bu modelda yo'q, service/repo qatlamida
+  hisoblab, schema'ga qo'shib beriladi)
+
+PostDetail (GET /posts/{id} uchun, kommentariyalar bilan):
+- PostOut'dagi hamma narsa +
+- comments: list[CommentOut]
+
+---------------------------------------------------------------
+1.4. schemas/comment.py
+---------------------------------------------------------------
+
+CommentCreate:
+- content: str, min_length=1, max_length=2000
+
+CommentOut:
+- id: UUID
+- post_id: UUID
+- author_id: UUID
+- content: str
+- created_at: datetime
+  * ixtiyoriy: author_username: str (chiroyliroq javob uchun,
+    service qatlamida to'ldiriladi)
+
+---------------------------------------------------------------
+1.5. schemas/like.py (ixtiyoriy, oddiy javoblar uchun)
+---------------------------------------------------------------
+
+LikeOut:
+- user_id: UUID
+- post_id: UUID
+- created_at: datetime
+
+---------------------------------------------------------------
+TEKSHIRISH:
+---------------------------------------------------------------
+Har bir schema yozilgach, shu ko'rinishda tez sinab ko'ring:
+
+python -c "from app.schemas.user import UserCreate; u = UserCreate(email='a@a.com', username='ali_01', full_name='Ali Vali', password='12345678'); print(u)"
+
+Agar validatsiya xato bo'lsa (masalan username'da bo'shliq bo'lsa),
+pydantic avtomatik ValidationError chiqarishi kerak — shuni ham
+noto'g'ri ma'lumot bilan sinab ko'ring.
+
+=====================================================================
+2-BOSQICH: CORE/DEPENDENCIES.PY
+=====================================================================
+Maqsad: FastAPI endPointlari ichida qayta-qayta yozilmasligi kerak
+bo'lgan umumiy logikani (masalan "joriy foydalanuvchini olish")
+alohida funksiyalarga chiqarish, so'ng ularni Depends() orqali
+routerlarda ishlatish.
+
+---------------------------------------------------------------
+2.1. get_current_user
+---------------------------------------------------------------
+Maqsad: Authorization headeridagi Bearer tokenni tekshirib, shu
+tokenga tegishli User obyektini bazadan topib qaytarish.
+
+Qadamlar:
+1. FastAPI'ning OAuth2PasswordBearer (yoki HTTPBearer) orqali
+   headerdan tokenni oling.
+2. security.py'dagi decode_token(token) ni chaqiring.
+3. Agar None qaytsa (token noto'g'ri yoki muddati o'tgan) —
+   HTTPException(401, "Could not validate credentials") chiqaring.
+4. payload ichidan "type" ni tekshiring — faqat "access" turidagi
+   tokenlar qabul qilinishi kerak (refresh token bilan API'ga
+   kirib bo'lmasligi kerak).
+5. payload["sub"] dan user_id ni oling.
+6. user_repo orqali shu id'dagi foydalanuvchini bazadan qidiring.
+7. Agar topilmasa — HTTPException(401, "User not found").
+8. Topilgan User obyektini qaytaring.
+
+Natija: User obyekti (yoki 401 xato).
+Qayerda ishlatiladi: deyarli barcha himoyalangan endPointlarda,
+masalan POST /posts, PATCH /users/me va h.k.
+
+---------------------------------------------------------------
+2.2. get_current_verified_user
+---------------------------------------------------------------
+Maqsad: TZ 1.4-banddagi qoidani ta'minlash — faqat is_verified=true
+foydalanuvchilar post/comment yarata olishi kerak.
+
+Qadamlar:
+1. get_current_user'ni Depends() orqali chaqiring (FastAPI
+   dependency'lar bir-birini chaqira oladi — "dependency chaining").
+2. Agar user.is_verified == False bo'lsa — HTTPException(403,
+   "Email not verified") chiqaring.
+3. Aks holda shu User obyektini qaytaring.
+
+Natija: User obyekti (faqat verified) yoki 403 xato.
+Qayerda ishlatiladi: POST /posts, PATCH/DELETE /posts/{id},
+POST /posts/{id}/comments, DELETE .../comments/{id}.
+
+---------------------------------------------------------------
+2.3. get_db
+---------------------------------------------------------------
+Bu allaqachon db/session.py'da yozilgan — faqat eslatma:
+har bir endPoint shuni Depends(get_db) orqali oladi, AsyncSession
+beradi, so'rov tugagach avtomatik yopiladi.
+
+---------------------------------------------------------------
+2.4. (ixtiyoriy) get_optional_current_user
+---------------------------------------------------------------
+Ba'zi endPointlar (masalan GET /posts) login qilmagan odam uchun
+ham ishlashi mumkin, lekin login qilingan bo'lsa ma'lumot
+moslashtirilishi mumkin. Hozircha TZ buni talab qilmaydi — shuning
+uchun bu qadamni keyinroq qoldirsangiz ham bo'ladi.
+
+=====================================================================
+3-BOSQICH: REPOSITORIES (DB bilan to'g'ridan-to'g'ri ishlash)
+=====================================================================
+Qoida: Bu qatlamda FAQAT SQLAlchemy so'rovlari bo'ladi. Hech qanday
+biznes-qoida (masalan "o'z postiga layk bosolmaydi") bu yerda emas,
+services'da bo'ladi.
+
+---------------------------------------------------------------
+3.1. repositories/user_repo.py
+---------------------------------------------------------------
+Funksiyalar (har biri async, db: AsyncSession qabul qiladi):
+
+- create_user(db, user_data: dict) -> User
+  Yangi User obyekti yaratadi, db.add(), db.commit(),
+  db.refresh() qiladi, obyektni qaytaradi.
+
+- get_user_by_id(db, user_id: UUID) -> User | None
+  select(User).where(User.id == user_id)
+
+- get_user_by_email(db, email: str) -> User | None
+  Register/login vaqtida dublikat tekshirish va login uchun kerak.
+
+- get_user_by_username(db, username: str) -> User | None
+  Register vaqtida dublikat tekshirish va login uchun kerak.
+
+- update_user(db, user: User, update_data: dict) -> User
+  Mavjud user obyektining fieldlarini yangilaydi, commit qiladi.
+
+- delete_user(db, user: User) -> None
+  db.delete(user), db.commit(). Cleanup task uchun kerak.
+
+- get_unverified_users_older_than(db, cutoff_datetime) -> list[User]
+  is_verified=False VA created_at < cutoff_datetime bo'lgan
+  foydalanuvchilarni qaytaradi. Cleanup task uchun kerak.
+
+---------------------------------------------------------------
+3.2. repositories/post_repo.py
+---------------------------------------------------------------
+
+- create_post(db, post_data: dict) -> Post
+
+- get_post_by_id(db, post_id: UUID) -> Post | None
+  * comments va likes bilan birga kerak bo'lsa, selectinload()
+    yoki joinedload() ishlatish tavsiya etiladi (N+1 muammosidan
+    qochish uchun).
+  - get_posts(db, page, page_size, search=None, date_from=None,
+    date_to=None) -> tuple[list[Post], int]
+    Qadamlar:
+    1. Base query: select(Post)
+    2. Agar search berilgan bo'lsa: .where(Post.title.ilike(f"%{search}%")
+      | Post.content.ilike(f"%{search}%"))
+    3. Agar date_from berilgan bo'lsa: .where(Post.created_at >= date_from)
+    4. Agar date_to berilgan bo'lsa: .where(Post.created_at <= date_to)
+    5. Umumiy sonni hisoblash uchun alohida count() so'rovi (yoki
+      func.count() bilan)
+    6. .offset((page-1)*page_size).limit(page_size)
+    7. Natija va umumiy sonni qaytaring (paginatsiya uchun kerak).
+
+
+- update_post(db, post: Post, update_data: dict) -> Post
+
+- delete_post(db, post: Post) -> None
+
+- get_posts_older_than(db, cutoff_datetime) -> list[Post]
+  Bonus: TTL (eskirgan postlarni o'chirish) uchun kerak bo'ladi.
+
+---------------------------------------------------------------
+3.3. repositories/comment_repo.py
+---------------------------------------------------------------
+
+- create_comment(db, comment_data: dict) -> Comment
+
+- get_comments_by_post(db, post_id: UUID) -> list[Comment]
+
+- get_comment_by_id(db, comment_id: UUID) -> Comment | None
+
+- delete_comment(db, comment: Comment) -> None
+
+---------------------------------------------------------------
+3.4. repositories/like_repo.py
+---------------------------------------------------------------
+
+- create_like(db, user_id: UUID, post_id: UUID) -> Like
+  * Diqqat: bu yerda IntegrityError chiqishi mumkin (agar layk
+    allaqachon bo'lsa) — buni service qatlamida try/except bilan
+    ushlaymiz.
+
+- get_like(db, user_id: UUID, post_id: UUID) -> Like | None
+  Layk mavjudligini tekshirish uchun (delete va double-like
+  tekshiruvi uchun kerak).
+
+- delete_like(db, like: Like) -> None
+
+- count_likes_for_post(db, post_id: UUID) -> int
+  PostOut'dagi likes_count uchun kerak.
+
+- get_like_user_ids_for_post(db, post_id: UUID) -> list[UUID]
+  /feed endPointidagi "likes": ["<uuid1>", "<uuid2>"] formatiga
+  mos kelish uchun kerak.
+
+=====================================================================
+4-BOSQICH: SERVICES (Biznes-logika)
+=====================================================================
+Qoida: Bu yerda "qoidalar" bo'ladi. Router faqat service'ni
+chaqiradi, service repository'ni chaqiradi.
+
+---------------------------------------------------------------
+4.1. services/auth_service.py
+---------------------------------------------------------------
+
+register_user(db, user_data: UserCreate) -> User:
+  1. get_user_by_email orqali email bandligini tekshiring.
+     Band bo'lsa -> HTTPException(400, "Email already registered")
+  2. get_user_by_username orqali username bandligini tekshiring.
+     Band bo'lsa -> HTTPException(400, "Username already taken")
+  3. hash_password(user_data.password) orqali xesh oling.
+  4. create_user repo funksiyasini chaqiring (is_verified=False,
+     default qiymat modeldan keladi).
+  5. (Ixtiyoriy hozircha) verification token yarating — buni
+     4.1.1 bo'limda batafsil ko'ramiz.
+  6. Yaratilgan User obyektini qaytaring.
+
+authenticate_user(db, email_or_username: str, password: str) -> User:
+  1. Avval email bo'yicha, topilmasa username bo'yicha qidiring.
+  2. Agar user topilmasa -> HTTPException(401, "Invalid credentials")
+  3. verify_password(password, user.password_hash) tekshiring.
+     Noto'g'ri bo'lsa -> HTTPException(401, "Invalid credentials")
+     (Diqqat: xavfsizlik uchun "email topilmadi" va "parol
+     noto'g'ri" xabarlarini BIR XIL qilib qaytaring — aks holda
+     tashqi odam qaysi email ro'yxatdan o'tganini bilib olishi
+     mumkin.)
+  4. User obyektini qaytaring (keyin router create_access_token
+     chaqiradi).
+
+---------------------------------------------------------------
+4.1.1. Email verifikatsiya logikasi (soddalashtirilgan)
+---------------------------------------------------------------
+TZ shart qiladi: tasdiqlash tokeni + amal qilish muddati.
+
+Eng oson yondashuv (yangi jadval yaratmasdan):
+- User modeliga ikkita QO'SHIMCHA ustun qo'shish kerak bo'lishi
+  mumkin (agar hali qo'shmagan bo'lsangiz):
+  * verification_token: str | None
+  * verification_token_expires_at: datetime | None
+  Buni qo'shsangiz, YANGI ALEMBIC MIGRATSIYA yaratishni unutmang
+  (alembic revision --autogenerate -m "add verification token").
+
+generate_verification_token(user) -> str:
+  1. secrets.token_urlsafe(32) orqali tasodifiy token generatsiya
+     qiling.
+  2. user.verification_token = token
+  3. user.verification_token_expires_at = now + timedelta(hours=24)
+  4. db orqali saqlang (commit).
+  5. Tokenni qaytaring.
+
+verify_email(db, token: str) -> User:
+  1. Token bo'yicha foydalanuvchini bazadan qidiring
+     (get_user_by_verification_token — user_repo'ga qo'shing).
+  2. Topilmasa -> HTTPException(400, "Invalid token")
+  3. Muddati o'tganmi tekshiring (now > expires_at) ->
+     HTTPException(400, "Token expired")
+  4. user.is_verified = True, verification_token = None qiling.
+  5. Saqlang, User obyektini qaytaring.
+
+---------------------------------------------------------------
+4.2. services/post_service.py
+---------------------------------------------------------------
+
+create_post(db, current_user, post_data: PostCreate) -> Post:
+  1. is_verified tekshiruvi allaqachon dependency darajasida
+     (get_current_verified_user) qilingan bo'ladi, shuning uchun
+     bu yerda qayta tekshirish shart emas.
+  2. post_repo.create_post(db, {...post_data, author_id: current_user.id})
+  3. Natijani qaytaring.
+
+update_post(db, current_user, post_id, update_data: PostUpdate) -> Post:
+  1. get_post_by_id orqali postni toping.
+  2. Topilmasa -> HTTPException(404, "Post not found")
+  3. Agar post.author_id != current_user.id ->
+     HTTPException(403, "Not your post")
+  4. update_post repo funksiyasini chaqiring (faqat berilgan
+     fieldlarni yangilang — update_data.model_dump(exclude_unset=True)
+     ishlatish tavsiya etiladi).
+  5. Natijani qaytaring.
+
+delete_post(db, current_user, post_id) -> None:
+  1-3 qadamlar update_post bilan bir xil (topish + huquq tekshirish).
+  4. delete_post repo funksiyasini chaqiring.
+
+get_post_detail(db, post_id) -> Post (comments bilan):
+  1. get_post_by_id (comments bilan birga load qilingan holda).
+  2. Topilmasa -> HTTPException(404).
+  3. Qaytaring.
+
+list_posts(db, page, page_size, search, date_from, date_to) -> dict:
+  1. post_repo.get_posts(...) chaqiring.
+  2. Har bir post uchun likes_count hisoblang (yoki repo query'da
+     JOIN + COUNT bilan bir yo'la oling — samaraliroq).
+  3. {"items": [...], "total": N, "page": page, "page_size": page_size}
+     ko'rinishida qaytaring.
+
+---------------------------------------------------------------
+4.3. services/comment_service.py
+---------------------------------------------------------------
+
+create_comment(db, current_user, post_id, comment_data) -> Comment:
+  1. Post mavjudligini tekshiring (get_post_by_id) ->
+     topilmasa 404.
+  2. comment_repo.create_comment bilan yarating (author_id =
+     current_user.id, post_id = post_id).
+  3. Qaytaring.
+
+delete_comment(db, current_user, post_id, comment_id) -> None:
+  1. get_comment_by_id orqali kommentariyani toping -> 404 agar yo'q.
+  2. comment.author_id != current_user.id -> 403.
+  3. (Ixtiyoriy) comment.post_id != post_id tekshiruvi ham qo'shish
+     mumkin — noto'g'ri URL kombinatsiyasidan himoya uchun.
+  4. delete_comment repo funksiyasini chaqiring.
+
+---------------------------------------------------------------
+4.4. services/like_service.py
+---------------------------------------------------------------
+
+like_post(db, current_user, post_id) -> Like:
+  1. Post mavjudligini tekshiring -> topilmasa 404.
+  2. Agar post.author_id == current_user.id ->
+     HTTPException(400, "You cannot like your own post")
+  3. get_like orqali allaqachon layk bosilganmi tekshiring ->
+     bosilgan bo'lsa HTTPException(400, "Already liked")
+     (Bu — DB darajasidagi UniqueConstraint'dan TASHQARI, foydalanuvchiga
+     chiroyli xabar berish uchun oldindan tekshiruv. DB constraint
+     esa "oxirgi himoya chizig'i" bo'lib qoladi — race condition'dan
+     himoya qiladi.)
+  4. create_like repo funksiyasini chaqiring.
+     * try/except IntegrityError bilan o'rab, agar baribir xato
+       chiqsa (masalan parallel so'rov tufayli) -> HTTPException(400,
+       "Already liked") qaytaring.
+  5. Natijani qaytaring.
+
+unlike_post(db, current_user, post_id) -> None:
+  1. get_like orqali layk mavjudligini tekshiring -> yo'q bo'lsa
+     HTTPException(404, "Like not found")
+  2. delete_like repo funksiyasini chaqiring.
+
+---------------------------------------------------------------
+4.5. services/feed_service.py (yoki post_service.py ichida)
+---------------------------------------------------------------
+
+get_feed(db, page, page_size) -> list[dict]:
+  TZ 1.5-banddagi formatga mos struktura yaratish kerak:
+  [{"username": ..., "posts": [{"id", "title", "content", "likes": [uuid,...]}]}]
+
+  Yondashuv variantlari:
+  a) Barcha foydalanuvchilarni oling, har biri uchun postlarini
+     va har bir post uchun layk qilgan userlar UUID ro'yxatini
+     yig'ing (N+1 muammosiga ehtiyot bo'ling — selectinload
+     ishlating).
+  b) Yoki: avval barcha kerakli postlarni JOIN bilan oling (User +
+     Post + Like), keyin Python darajasida (masalan itertools.groupby
+     yoki oddiy dict bilan) username bo'yicha guruhlang.
+  Paginatsiya postlar darajasida yoki userlar darajasida bo'lishi
+  mumkin — TZ aniq belgilamagan, o'zingiz izchil qaror qiling va
+  README'da tushuntiring.
+
+=====================================================================
+5-BOSQICH: ROUTERS (API endPointlar) — TZ TARTIBIDA
+=====================================================================
+Qoida: Router faqat: 1) kiruvchi schema'ni qabul qiladi, 2) service
+funksiyasini chaqiradi, 3) chiquvchi schema orqali javob qaytaradi.
+Hech qanday SQL yoki biznes-qoida bu yerda bo'lmasligi kerak.
+
+---------------------------------------------------------------
+5.1. api/auth.py
+---------------------------------------------------------------
+
+POST /auth/register
+  Kirish: UserCreate (body)
+  Logika: auth_service.register_user(db, data) chaqiring
+  Chiqish: UserOut, status_code=201
+  Xatolar: 400 (email/username band)
+
+POST /auth/login
+  Kirish: UserLogin (yoki OAuth2PasswordRequestForm — FastAPI
+  standart Swagger UI'da "Authorize" tugmasi ishlashi uchun shu
+  formatni tavsiya qilaman: username field'iga email yoki username
+  yozilishi mumkin)
+  Logika:
+   1. auth_service.authenticate_user chaqiring -> User obyekti
+   2. create_access_token({"sub": str(user.id)})
+   3. create_refresh_token({"sub": str(user.id)})
+  Chiqish: Token schema (access_token, refresh_token, token_type)
+  Xatolar: 401 (noto'g'ri credentials)
+
+GET /auth/me
+  Kirish: Depends(get_current_user)
+  Logika: hech narsa, faqat current_user'ni qaytarish
+  Chiqish: UserOut
+  Xatolar: 401 (token yo'q/noto'g'ri)
+
+GET /auth/verify-email?token=...
+  Kirish: query parametr token: str
+  Logika: auth_service.verify_email(db, token)
+  Chiqish: {"message": "Email verified successfully"} yoki UserOut
+  Xatolar: 400 (token noto'g'ri/muddati o'tgan)
+
+---------------------------------------------------------------
+5.2. api/users.py
+---------------------------------------------------------------
+
+PATCH /users/me
+  Kirish: UserUpdate (body), Depends(get_current_user)
+  Logika: user_repo.update_user yoki alohida
+  auth_service/user_service.update_profile orqali
+  Chiqish: yangilangan UserOut
+  Xatolar: 400 (validatsiya, masalan username band bo'lsa)
+
+(Admin/texnik endPoint — cleanup uchun, 6-bosqichda batafsil)
+DELETE /users/cleanup-unverified  (yoki shunga o'xshash nom)
+  Himoyalangan (masalan maxsus admin token yoki oddiy secret
+  query parametr bilan himoyalangan — TZ "alohida himoyalangan
+  texnik endPoint" deydi, murakkab admin-role tizimi shart emas)
+
+---------------------------------------------------------------
+5.3. api/posts.py
+---------------------------------------------------------------
+
+GET /posts
+  Kirish: query parametrlar — page, page_size, search, date_from,
+  date_to (hammasi Optional, default page=1, page_size=10)
+  Logika: post_service.list_posts(...)
+  Chiqish: {"items": list[PostOut], "total": int, "page": int,
+  "page_size": int}
+  Xatolar: yo'q (bo'sh natija ham 200 bo'lishi kerak)
+
+POST /posts
+  Kirish: PostCreate (body), Depends(get_current_verified_user)
+  Logika: post_service.create_post(...)
+  Chiqish: PostOut, status_code=201
+  Xatolar: 401 (login qilinmagan), 403 (verified emas)
+
+GET /posts/{id}
+  Kirish: path parametr id: UUID
+  Logika: post_service.get_post_detail(db, id)
+  Chiqish: PostDetail (comments bilan)
+  Xatolar: 404 (post topilmadi)
+
+PATCH /posts/{id}
+  Kirish: PostUpdate (body), Depends(get_current_verified_user)
+  Logika: post_service.update_post(...)
+  Chiqish: yangilangan PostOut
+  Xatolar: 404 (topilmadi), 403 (muallif emas)
+
+DELETE /posts/{id}
+  Kirish: Depends(get_current_verified_user)
+  Logika: post_service.delete_post(...)
+  Chiqish: 204 No Content (body yo'q)
+  Xatolar: 404, 403
+
+---------------------------------------------------------------
+5.4. api/comments.py
+---------------------------------------------------------------
+(Bularni alohida faylga yoki posts.py ichiga qo'shsangiz ham
+bo'ladi, chunki URL'lar /posts/{id}/comments ko'rinishida)
+
+GET /posts/{id}/comments
+  Logika: comment_repo.get_comments_by_post
+  Chiqish: list[CommentOut]
+  Xatolar: 404 (post topilmasa)
+
+POST /posts/{id}/comments
+  Kirish: CommentCreate, Depends(get_current_verified_user)
+  Logika: comment_service.create_comment(...)
+  Chiqish: CommentOut, status_code=201
+  Xatolar: 404 (post yo'q), 401/403
+
+DELETE /posts/{post_id}/comments/{comment_id}
+  Kirish: Depends(get_current_user)  (huquq faqat muallifga tegishli
+  bo'lgani uchun is_verified shart emas — muallif bo'lgan odam
+  allaqachon verified bo'lgan, chunki faqat verified odam comment
+  yoza olgan)
+  Logika: comment_service.delete_comment(...)
+  Chiqish: 204 No Content
+  Xatolar: 404, 403
+
+---------------------------------------------------------------
+5.5. api/likes.py
+---------------------------------------------------------------
+
+POST /posts/{id}/like
+  Kirish: Depends(get_current_user)
+  (Diqqat: TZ layk bosish uchun is_verified=false foydalanuvchiga
+  ham ruxsat beradi — 1.4-bandga qarang: "Postlarga layk bosa
+  oladi" — bu unverified foydalanuvchiga ham tegishli, shuning
+  uchun bu yerda get_current_verified_user EMAS, oddiy
+  get_current_user ishlatiladi.)
+  Logika: like_service.like_post(...)
+  Chiqish: LikeOut yoki {"message": "Liked"}, status_code=201
+  Xatolar: 404 (post yo'q), 400 (o'z postiga layk / allaqachon
+  layk bosilgan)
+
+DELETE /posts/{id}/like
+  Kirish: Depends(get_current_user)
+  Logika: like_service.unlike_post(...)
+  Chiqish: 204 No Content
+  Xatolar: 404 (layk topilmadi)
+
+---------------------------------------------------------------
+5.6. api/feed.py
+---------------------------------------------------------------
+
+GET /feed  (yoki /all — TZ ikkalasini ham qabul qiladi)
+  Kirish: query — page, page_size
+  Logika: feed_service.get_feed(...)
+  Chiqish: TZ 1.5-banddagi JSON struktura
+  Xatolar: yo'q
+
+---------------------------------------------------------------
+5.7. main.py — routerlarni ulash
+---------------------------------------------------------------
+Qadamlar:
+1. FastAPI() obyektini yarating.
+2. Har bir router faylida `router = APIRouter(prefix="/auth",
+   tags=["auth"])` kabi belgilang (prefix va tag har bir faylda
+   mos ravishda: /auth, /users, /posts, /feed).
+3. main.py ichida:
+   app.include_router(auth.router)
+   app.include_router(users.router)
+   app.include_router(posts.router)
+   app.include_router(feed.router)
+   (comments va likes agar posts.py ichida bo'lsa, alohida
+   include shart emas — ular posts.router'ga description
+   sifatida qo'shilishi mumkin, yoki alohida router bo'lsa
+   ularni ham include qiling)
+4. Ishga tushirish uchun: uvicorn app.main:app --reload
+
+=====================================================================
+6-BOSQICH: TASKS (Background cleanup)
+=====================================================================
+
+tasks/cleanup.py:
+
+delete_unverified_old_users(db) -> int:
+  1. cutoff = now - timedelta(hours=48)  (yoki 24, o'zingiz belgilang)
+  2. user_repo.get_unverified_users_older_than(db, cutoff)
+  3. Har birini user_repo.delete_user orqali o'chiring
+     (CASCADE tufayli postlari/kommentlari/layklari ham o'chadi).
+  4. O'chirilgan sonini qaytaring (logging/response uchun).
+
+Bu funksiyani chaqirish uchun endPoint (himoyalangan, texnik):
+
+POST /admin/cleanup-unverified-users
+  Kirish: himoyalash uchun oddiy variant — header orqali maxsus
+  X-Admin-Secret tekshirish (config.py'ga ADMIN_SECRET qo'shing),
+  yoki FastAPI BackgroundTasks orqali darhol javob qaytarib, ishni
+  fonda bajarish.
+  Logika: BackgroundTasks.add_task(delete_unverified_old_users, db)
+  Chiqish: {"message": "Cleanup started"}
+
+=====================================================================
+7-BOSQICH: TESTLAR (TZ 1.9-band, minimal)
+=====================================================================
+pytest + pytest-asyncio + httpx (AsyncClient) kerak bo'ladi:
+
+pip install pytest pytest-asyncio httpx
+
+tests/conftest.py:
+- Test uchun alohida test bazasi yoki transaction-rollback
+  strategiyasi sozlanadi (har test tugagach ma'lumotlar
+  tozalanishi kerak).
+- async_client fixture — AsyncClient(app=app, base_url=...) yaratadi.
+
+tests/test_auth.py — minimal talab qilingan testlar:
+1. test_register_success — to'g'ri ma'lumot bilan ro'yxatdan
+   o'tish, 201 va UserOut qaytishini tekshiring.
+2. test_register_duplicate_email — bir xil email bilan ikki marta
+   ro'yxatdan o'tishga urinish, 400 qaytishini tekshiring.
+3. test_register_duplicate_username — xuddi shunday, username
+   uchun.
+4. test_login_success — to'g'ri credentials bilan login, 200 va
+   access_token borligini tekshiring.
+5. test_login_wrong_password — noto'g'ri parol, 401 qaytishini
+   tekshiring.
+6. test_me_with_valid_token — /auth/me ga to'g'ri token bilan
+   so'rov, 200 va foydalanuvchi ma'lumoti qaytishini tekshiring.
+7. test_me_with_invalid_token — noto'g'ri/soxta token bilan
+   so'rov, 401 qaytishini tekshiring.
+8. test_me_without_token — headersiz so'rov, 401 qaytishini
+   tekshiring.
+
+=====================================================================
+TAVSIYA QILINGAN ISHLASH TARTIBI (2 SOATLIK REJA UCHUN)
+=====================================================================
+1. schemas/user.py + schemas/token.py yozing va sinab ko'ring.
+2. core/dependencies.py yozing (get_current_user,
+   get_current_verified_user).
+3. repositories/user_repo.py yozing.
+4. services/auth_service.py yozing (register + login, email
+   verifikatsiyasiz — soddalashtirilgan versiya birinchi).
+5. api/auth.py yozing: /auth/register, /auth/login, /auth/me.
+6. main.py'da routerni ulang, uvicorn bilan ishga tushiring,
+   Swagger UI (/docs) orqali qo'lda sinab ko'ring.
+7. Shu yerda to'xtab, ishlaganini tasdiqlagach — keyingi bosqichga
+   (posts) o'tasiz, xuddi shu naqsh (schema -> repo -> service ->
+   router) bilan davom etasiz: posts -> comments -> likes -> feed.
+8. Eng oxirida: email verifikatsiya to'liq logikasi, cleanup task,
+   testlar, README.
+
+Har bir qatlamni yozgach — DARHOL sinab ko'ring (Swagger UI /docs
+orqali eng qulay), keyingi qatlamga o'tmang. Shunda xato qayerda
+ekanini topish osonroq bo'ladi.
