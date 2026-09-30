@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+
+<div class="container page">
+
+  <div class="profile-header">
+    <div class="profile-avatar">
+      {% if user.avatar %}
+        <img src="{{ user.avatar.url }}" alt="">
+      {% else %}
+        {{ user.username|first|upper }}
+      {% endif %}
+    </div>
+    <div>
+      <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+      <div class="profile-email">{{ user.email }}</div>
+      {% if user.phone %}<div style="color:var(--text-muted);font-size:0.85rem;margin-top:0.25rem;">📞 {{ user.phone }}</div>{% endif %}
+      {% if user.bio %}<div style="color:var(--text-muted);font-size:0.875rem;margin-top:0.5rem;max-width:400px;">{{ user.bio }}</div>{% endif %}
+      <div style="color:var(--text-dim);font-size:0.78rem;margin-top:0.5rem;letter-spacing:0.5px;">
+        Member since {{ user.date_joined|date:"F Y" }}
+      </div>
+      <div class="profile-actions">
+        <a href="{% url 'edit_profile' %}" class="btn btn-outline">Edit Profile</a>
+        <a href="{% url 'change_password' %}" class="btn btn-outline">Change Password</a>
+        <a href="{% url 'my_products' %}" class="btn btn-primary">My Watches</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-stats">
+    <div class="stat-box">
+      <div class="stat-num">{{ user.products.count }}</div>
+      <div class="stat-label">Total Listings</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">{{ user.products.filter.count|default:0 }}</div>
+      <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">{{ user.date_joined|date:"Y" }}</div>
+      <div class="stat-label">Member Since</div>
+    </div>
+  </div>
+
+  {% with products=user.products.all %}
+  {% if products %}
+  <h2 class="section-title" style="margin-bottom:1rem;">Your Listings</h2>
+  <div class="grid">
+    {% for p in products|slice:":8" %}
+    <a href="{% url 'product_detail' p.pk %}" class="card">
+      <div class="card-img">
+        {% if p.image %}<img src="{{ p.image.url }}" alt="">{% else %}⌚{% endif %}
+      </div>
+      <div class="card-body">
+        <div class="card-brand">{{ p.brand }}</div>
+        <div class="card-name">{{ p.name }}</div>
+        <div class="card-footer">
+          <span class="card-price">${{ p.price }}</span>
+          {% if p.is_available %}
+            <span class="badge badge-avail">Active</span>
+          {% else %}
+            <span class="badge badge-sold">Inactive</span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% if products.count > 8 %}
+  <div style="text-align:center;margin-top:2rem;">
+    <a href="{% url 'my_products' %}" class="btn btn-outline">View All {{ products.count }} Listings</a>
+  </div>
+  {% endif %}
+  {% endif %}
+  {% endwith %}
+
+</div>
+
+{% endblock %}

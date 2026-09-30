@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Delete Listing{% endblock %}
+{% block content %}
+
+<div class="container page">
+  <div class="confirm-card">
+    <div class="confirm-icon">🗑️</div>
+    <h2>Remove Listing?</h2>
+    <p>
+      You are about to remove <strong style="color:var(--text);">{{ product.brand }} {{ product.name }}</strong>
+      from your listings. This action cannot be undone.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="confirm-actions">
+        <button type="submit" class="btn btn-danger">Yes, Remove</button>
+        <a href="{% url 'my_products' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

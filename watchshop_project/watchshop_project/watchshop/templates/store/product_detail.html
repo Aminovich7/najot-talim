@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.brand }} {{ product.name }}{% endblock %}
+{% block content %}
+
+<div class="container page">
+  <div style="margin-bottom:1.5rem;">
+    <a href="{% url 'home' %}" style="color:var(--text-muted);text-decoration:none;font-size:0.85rem;">← Back to Shop</a>
+  </div>
+
+  <div class="product-detail">
+    <div class="detail-img">
+      {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+      {% else %}⌚{% endif %}
+    </div>
+
+    <div>
+      <div class="detail-brand">{{ product.brand }}</div>
+      <h1 class="detail-name">{{ product.name }}</h1>
+
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+        <span class="badge {% if product.condition == 'new' %}badge-new{% else %}badge-used{% endif %}">
+          {{ product.get_condition_display }}
+        </span>
+        {% if product.is_available %}
+          <span class="badge badge-avail">Available</span>
+        {% else %}
+          <span class="badge badge-sold">Sold</span>
+        {% endif %}
+        {% if product.category %}
+          <span style="color:var(--text-muted);font-size:0.8rem;">{{ product.category.icon }} {{ product.category.name }}</span>
+        {% endif %}
+      </div>
+
+      <div class="detail-price">${{ product.price }}</div>
+
+      <p class="detail-desc">{{ product.description }}</p>
+
+      <div class="detail-meta">
+        <div class="meta-item">
+          <div class="meta-label">Brand</div>
+          <div class="meta-value">{{ product.brand }}</div>
+        </div>
+        {% if product.model_number %}
+        <div class="meta-item">
+          <div class="meta-label">Model No.</div>
+          <div class="meta-value">{{ product.model_number }}</div>
+        </div>
+        {% endif %}
+        <div class="meta-item">
+          <div class="meta-label">Condition</div>
+          <div class="meta-value">{{ product.get_condition_display }}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Listed</div>
+          <div class="meta-value">{{ product.created_at|date:"M d, Y" }}</div>
+        </div>
+      </div>
+
+      <div class="seller-card">
+        <div class="seller-avatar">
+          {% if product.owner.avatar %}
+            <img src="{{ product.owner.avatar.url }}" alt="">
+          {% else %}
+            {{ product.owner.username|first|upper }}
+          {% endif %}
+        </div>
+        <div>
+          <div class="seller-name">{{ product.owner.get_full_name|default:product.owner.username }}</div>
+          <div class="seller-label">Seller · Member since {{ product.owner.date_joined|date:"Y" }}</div>
+        </div>
+      </div>
+
+      {% if request.user == product.owner %}
+      <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+        <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline">Edit Listing</a>
+        <a href="{% url 'product_delete' product.pk %}" class="btn btn-danger">Delete</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if related %}
+  <div class="related-section">
+    <hr class="divider">
+    <h2 class="section-title">More from this category</h2>
+    <p class="section-sub">{{ product.category.name }} watches</p>
+    <div class="grid">
+      {% for p in related %}
+      <a href="{% url 'product_detail' p.pk %}" class="card">
+        <div class="card-img">
+          {% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}">{% else %}⌚{% endif %}
+        </div>
+        <div class="card-body">
+          <div class="card-brand">{{ p.brand }}</div>
+          <div class="card-name">{{ p.name }}</div>
+          <div class="card-footer">
+            <span class="card-price">${{ p.price }}</span>
+            <span class="badge badge-new">{{ p.get_condition_display }}</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
