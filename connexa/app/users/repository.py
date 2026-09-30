@@ -13,20 +13,15 @@ async def get_by_email(db: AsyncSession, email: str ) -> User | None:
 
 
 
-async def get_by_usernam(db: AsyncSession, username: str ) -> User | None:
+async def get_by_username(db: AsyncSession, username: str ) -> User | None:
     result = await db.execute(
         select(User).where(User.username == username)
     )
     return result.scalar_one_or_none()
 
 
-async def create(db: AsyncSession, user: User) -> User | None:
-
-    db.add(User)
+async def create(db: AsyncSession, user: User) -> User:
+    db.add(user)
     await db.commit()
-    await db.refresh(User)
-
-    response = {
-        'msg': f'{User.username} created successfully'
-    }
-    return response
+    await db.refresh(user)
+    return user

@@ -1,7 +1,8 @@
 fastapi
 uvicorn[standard]
 pydantic-settings
-sqlalchemy
+sqlalchemy[asyncio]
 asyncpg
 alembic
 argon2-cffi
+email-validator

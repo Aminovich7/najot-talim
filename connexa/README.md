@@ -2,7 +2,7 @@
 
 The backend for a social network, built with FastAPI and async SQLAlchemy.
 
-**Status: early development.** The application skeleton, settings, async database session, Alembic setup, Docker setup and health-check endpoints are in place. The users module (model, schemas, repository, service and a registration route) is being built and is not yet connected to the app.
+**Status: early development.** The application skeleton, settings, async database session, migrations, Docker setup and user registration are in place.
 
 ## Stack
 
@@ -26,6 +26,12 @@ cp .env.example .env
 docker compose up --build
 ```
 
+Create the database tables (first run, and after pulling new migrations):
+
+```bash
+docker compose exec api alembic upgrade head
+```
+
 The API runs at http://localhost:8000; interactive docs are at http://localhost:8000/docs.
 
 | Endpoint | What |
@@ -33,6 +39,7 @@ The API runs at http://localhost:8000; interactive docs are at http://localhost:
 | `GET /` | welcome message |
 | `GET /health` | service status |
 | `GET /db-check` | confirms the database connection |
+| `POST /auth/register` | create an account (email, username, full name, password); rejects duplicate emails and usernames |
 
 ## Configuration
 
