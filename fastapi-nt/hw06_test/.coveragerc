@@ -1,0 +1,15 @@
+[run]
+source = app
+omit =
+    app/tests/*
+    */alembic/*
+    */__init__.py
+
+[report]
+precision = 2
+show_missing = True
+skip_empty = True
+fail_under = 90
+
+[html]
+directory = htmlcov

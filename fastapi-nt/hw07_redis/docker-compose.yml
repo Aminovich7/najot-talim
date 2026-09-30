@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: socialmedia_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "2109"
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    # Runs uvicorn with hot-reloading enabled for easy local development
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db

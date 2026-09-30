@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RabbitMQ Basics Tester</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f4ef;
+      --panel: #ffffff;
+      --text: #1d1d1d;
+      --muted: #666;
+      --border: #ded8ce;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --success: #166534;
+      --warning: #92400e;
+      --error: #991b1b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #f6f4ef 0%, #ece7dd 100%);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 20px 64px;
+    }
+
+    .hero {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      letter-spacing: -0.03em;
+    }
+
+    p {
+      line-height: 1.6;
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .secondary {
+      background: #1f2937;
+      color: white;
+    }
+
+    .meta {
+      display: grid;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .meta strong {
+      color: var(--text);
+    }
+
+    .messages {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .message {
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid transparent;
+    }
+
+    .message.success {
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+      color: var(--success);
+    }
+
+    .message.warning {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: var(--warning);
+    }
+
+    .message.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: var(--error);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>RabbitMQ Basics Tester</h1>
+      <p>Use this page to publish a message, read one back, or test a separate worker consumer.</p>
+    </section>
+
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="grid">
+      <section class="card">
+        <form method="post" action="{% url 'publish_message' %}">
+          {% csrf_token %}
+          <label for="{{ form.message.id_for_label }}">Message</label>
+          {{ form.message }}
+          <div class="actions">
+            <button class="primary" type="submit">Send to Queue</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <form method="post" action="{% url 'consume_message' %}">
+          {% csrf_token %}
+          <p style="margin-top: 0;">Read one message from the queue and remove it.</p>
+          <div class="actions">
+            <button class="secondary" type="submit">Read One Message</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="meta">
+          <div><strong>Configured queue:</strong> {{ queue_name }}</div>
+          <div><strong>RabbitMQ:</strong> {{ rabbitmq_host }}:{{ rabbitmq_port }}</div>
+          <div><strong>Consumer:</strong> <code>python manage.py consume_messages</code></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
