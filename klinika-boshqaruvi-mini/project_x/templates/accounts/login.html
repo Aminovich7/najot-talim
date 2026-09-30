@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Kirish{% endblock %}
+
+{% block content %}
+<section class="auth-layout">
+    <div class="surface-card auth-card">
+        <div class="auth-top">
+            <div class="auth-mark"><i class="bi bi-shield-lock"></i></div>
+            <h1 class="page-title" style="font-size: 2rem;">Tizimga kirish</h1>
+            <p class="page-description" style="margin: 0 auto;">Klinika boshqaruv paneliga kirish uchun foydalanuvchi ma'lumotlaringizni kiriting.</p>
+        </div>
+
+        {% if form.errors %}
+            <div class="alert alert-error" style="margin-bottom: 18px;">Foydalanuvchi nomi yoki parol noto'g'ri.</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="form-field full">
+                    <label for="username">Foydalanuvchi nomi</label>
+                    <input id="username" type="text" name="username" placeholder="Foydalanuvchi nomini kiriting" autofocus>
+                </div>
+                <div class="form-field full">
+                    <label for="password">Parol</label>
+                    <input id="password" type="password" name="password" placeholder="Parolni kiriting">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="bi bi-box-arrow-in-right"></i>Kirish</button>
+            </div>
+        </form>
+
+        <p class="page-description" style="text-align: center; margin-top: 18px;">
+            Hisobingiz yo'qmi? <a href="{% url 'register' %}" style="color: var(--primary); font-weight: 700;">Ro'yxatdan o'tish</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Konsultatsiyani o'chirish{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Konsultatsiyani o'chirish</h1>
+        <p class="page-description">O'chirishdan oldin yozuv tafsilotlarini yana bir bor tasdiqlang.</p>
+    </div>
+</section>
+
+<section class="surface-card" style="max-width: 680px; margin: 0 auto;">
+    <div class="surface-head">
+        <h2><i class="bi bi-exclamation-triangle" style="color: var(--danger); margin-right: 8px;"></i>O'chirish tasdig'i</h2>
+    </div>
+    <div class="surface-body">
+        <div class="detail-box">
+            <div class="detail-item">
+                <span class="detail-label">Turi</span>
+                <strong>{{ object.get_type_display }}</strong>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Sana</span>
+                <strong>{{ object.date|date:"d.m.Y H:i" }}</strong>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Shifokor</span>
+                <strong>{{ object.doctor }}</strong>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Summa</span>
+                <strong>{{ object.amount|floatformat:0|intcomma }} so'm</strong>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Chek raqami</span>
+                <strong>{{ object.receipt_number }}</strong>
+            </div>
+        </div>
+        <div class="warning-box" style="margin-top: 16px;">Bu yozuv tizimdan butunlay o'chiriladi.</div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger"><i class="bi bi-trash3"></i>Ha, o'chirish</button>
+                <a href="{% url 'consultation-list' %}" class="btn btn-secondary">Bekor qilish</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

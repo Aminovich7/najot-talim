@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <h1 class="page-title">Profil</h1>
+        <p class="page-description">Shaxsiy ma'lumotlar, aloqa va avatarni shu oynada yangilang.</p>
+    </div>
+</section>
+
+<section class="surface-card" style="max-width: 760px; margin: 0 auto 20px;">
+    <div class="surface-body" style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+        {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" class="user-avatar" alt="Avatar" style="width: 88px; height: 88px;">
+        {% else %}
+            <div class="user-avatar-fallback" style="width: 88px; height: 88px; font-size: 30px;">{{ user.username|first|upper }}</div>
+        {% endif %}
+        <div>
+            <h2 style="font-size: 1.4rem; font-weight: 800;">{{ user.username }}</h2>
+            {% if user.phone %}
+                <p class="page-description" style="margin-top: 6px;">Telefon: {{ user.phone }}</p>
+            {% endif %}
+            <span class="tag tag-blue" style="margin-top: 10px;">{{ user.get_role_display }}</span>
+        </div>
+    </div>
+</section>
+
+<section class="surface-card" style="max-width: 760px; margin: 0 auto;">
+    <div class="surface-head">
+        <h2>Profil ma'lumotlarini tahrirlash</h2>
+    </div>
+    <div class="surface-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="form-field full">
+                    <label for="profile_username">Foydalanuvchi nomi</label>
+                    <input id="profile_username" type="text" name="username" value="{{ user.username }}">
+                </div>
+                <div class="form-field full">
+                    <label for="profile_phone">Telefon raqam</label>
+                    <input id="profile_phone" type="text" name="phone" value="{{ user.phone|default:'' }}" placeholder="+998 90 123 45 67">
+                </div>
+                <div class="form-field full">
+                    <label for="profile_avatar">Avatar</label>
+                    <div class="avatar-preview-row">
+                        {% if user.avatar %}
+                            <img id="avatarPreview" class="avatar-preview" src="{{ user.avatar.url }}" alt="Avatar">
+                        {% else %}
+                            <img id="avatarPreview" class="avatar-preview" src="#" alt="Avatar ko'rinishi" style="display:none;">
+                        {% endif %}
+                        <input id="profile_avatar" type="file" name="avatar" accept="image/*" onchange="previewAvatar(this)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i>Saqlash</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function previewAvatar(input) {
+        const preview = document.getElementById('avatarPreview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                preview.src = event.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+{% endblock %}

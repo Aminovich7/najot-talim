@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Operatsiyalar hisoboti{% endblock %}
+
+{% block content %}
+<section class="report-shell">
+    <div class="report-header">
+        <div>
+            <h1 class="page-title">Operatsiyalar hisoboti</h1>
+            <p class="page-description">Operatsiyalar bo'yicha tushum, xarajatlar, shifokor ulushi va sof foyda natijalari.</p>
+        </div>
+        <div class="report-period">
+            <i class="bi bi-calendar-range"></i>
+            {% if request.GET.date_from or request.GET.date_to %}
+                {{ request.GET.date_from|default:"Boshlanishi tanlanmagan" }} - {{ request.GET.date_to|default:"Bugungacha" }}
+            {% else %}
+                Bugungi hisobot: {% now "d.m.Y" %}
+            {% endif %}
+        </div>
+    </div>
+
+    <section class="surface-card">
+        <div class="surface-body">
+            <form method="get" class="toolbar">
+                <div class="form-field toolbar-grow">
+                    <label for="surgery_report_from">Sanadan</label>
+                    <input id="surgery_report_from" type="date" name="date_from" value="{{ request.GET.date_from }}">
+                </div>
+                <div class="form-field toolbar-grow">
+                    <label for="surgery_report_to">Sanagacha</label>
+                    <input id="surgery_report_to" type="date" name="date_to" value="{{ request.GET.date_to }}">
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i>Filtrlash</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="summary-grid">
+        <article class="metric-card">
+            <div class="metric-head">
+                <div>
+                    <div class="metric-label">Umumiy tushum</div>
+                    <div class="metric-value">{{ surgery_total_income|intcomma }} so'm</div>
+                </div>
+                <div class="metric-icon blue"><i class="bi bi-cash-stack"></i></div>
+            </div>
+        </article>
+        <article class="metric-card">
+            <div class="metric-head">
+                <div>
+                    <div class="metric-label">Xarajatlar</div>
+                    <div class="metric-value">{{ surgery_total_expense|intcomma }} so'm</div>
+                </div>
+                <div class="metric-icon red"><i class="bi bi-activity"></i></div>
+            </div>
+        </article>
+        <article class="metric-card">
+            <div class="metric-head">
+                <div>
+                    <div class="metric-label">Shifokor ulushi</div>
+                    <div class="metric-value">{{ surgery_total_doctor_share|intcomma }} so'm</div>
+                </div>
+                <div class="metric-icon gold"><i class="bi bi-people"></i></div>
+            </div>
+        </article>
+        <article class="metric-card">
+            <div class="metric-head">
+                <div>
+                    <div class="metric-label">Klinika foydasi</div>
+                    <div class="metric-value">{{ surgery_total_clinic_profit|intcomma }} so'm</div>
+                </div>
+                <div class="metric-icon green"><i class="bi bi-bar-chart"></i></div>
+            </div>
+        </article>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-head">
+            <h2>Umumiy ko'rsatkichlar</h2>
+        </div>
+        <div class="surface-body">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Umumiy tushum</th>
+                            <th>Xarajatlar</th>
+                            <th>Shifokor ulushi</th>
+                            <th>Klinika foydasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="data-value income">{{ surgery_total_income|intcomma }} so'm</td>
+                            <td class="data-value expense">{{ surgery_total_expense|intcomma }} so'm</td>
+                            <td class="data-value">{{ surgery_total_doctor_share|intcomma }} so'm</td>
+                            <td class="data-value">{{ surgery_total_clinic_profit|intcomma }} so'm</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-head">
+            <h2>Shifokorlar ulushi tafsiloti</h2>
+        </div>
+        <div class="surface-body">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Shifokor</th>
+                            <th>Operatsiyalar soni</th>
+                            <th>Jami ulush</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doctor in surgery_doctor_shares %}
+                            <tr>
+                                <td>{{ doctor.name }}</td>
+                                <td>{{ doctor.count|intcomma }}</td>
+                                <td class="data-value">{{ doctor.total_share|intcomma }} so'm</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="empty-state">Ma'lumot topilmadi.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</section>
+{% endblock %}
